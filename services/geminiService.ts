@@ -2,17 +2,12 @@
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { BrandPersona, AnalysisRequest, CustomInputs, PersonaFieldKey, FieldGuide, FIELD_METADATA, BuilderState } from "../types";
 
-// [보안 설정 변경]
-// API 키를 코드에 직접 적지 않습니다. (적으면 구글이 감지하여 즉시 차단함)
-// Vercel 환경 변수에서 가져옵니다.
-const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
-
-if (!apiKey) {
-  console.warn("Warning: API Key is missing. Please check Vercel Environment Variables.");
-}
+// [API 키 설정]
+// 사용자의 요청에 따라 API 키를 코드에 직접 입력하여 배포 시 즉시 작동하도록 설정합니다.
+const apiKey = "AIzaSyAA1mo8-okhJFyAb7muzyeIZsel0x7vSs0";
 
 // API 키가 없을 경우 초기화하지 않음 (호출 시 에러 처리)
-const ai = apiKey ? new GoogleGenAI({ apiKey: apiKey }) : null;
+const ai = new GoogleGenAI({ apiKey: apiKey });
 
 // --- Global Safety Settings (Relaxed to prevent false positives) ---
 const SAFETY_SETTINGS = [
@@ -91,8 +86,6 @@ const SYSTEM_INSTRUCTION = `
 
 // --- Standard Generation (Simple Mode) ---
 export const generateBrandPersonaData = async (request: AnalysisRequest): Promise<BrandPersona> => {
-  if (!ai) throw new Error("API Key가 설정되지 않았습니다. Vercel 환경변수(REACT_APP_GEMINI_API_KEY)를 확인하세요.");
-
   const { idea, url, brandName, customInputs } = request;
 
   // 브랜드명 입력 여부 확인 및 처리
@@ -177,10 +170,7 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
     return cleanAndParseJson(text) as BrandPersona;
   } catch (error: any) {
     console.error("Error generating brand persona:", error);
-    if (error.message && (error.message.includes("403") || error.message.includes("API key"))) {
-       throw new Error("API Key 권한 오류. (구글 Cloud Console에서 Referrer 설정을 확인하세요)");
-    }
-    throw error;
+    throw new Error(`생성 중 오류가 발생했습니다: ${error.message}`);
   }
 };
 
@@ -188,8 +178,6 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
 
 // 1. Generate Planning Guides
 export const generatePlanningGuides = async (idea: string, brandName?: string): Promise<Record<string, string[]>> => {
-  if (!ai) return DEFAULT_GUIDES; // Fail-safe
-
   const fieldsList = FIELD_METADATA.map(f => f.key).join(", ");
   
   const prompt = `
@@ -235,7 +223,6 @@ export const generateFieldDraft = async (
   context: string,
   brandName?: string
 ): Promise<string> => {
-  if (!ai) return "API 키 오류: Vercel 환경 변수를 확인하세요.";
 
   const finalBrandName = brandName || "미정";
 
@@ -278,13 +265,12 @@ export const generateFieldDraft = async (
     return response.text || "내용을 생성할 수 없습니다.";
   } catch (error: any) {
     console.error(`Error generating draft for ${fieldKey}:`, error);
-    return `오류 발생: ${error.message || "알 수 없는 오류"}. (API 키 권한을 확인하세요)`;
+    return `오류 발생: ${error.message || "알 수 없는 오류"}.`;
   }
 };
 
 // 3. Finalize and Assemble (Stitching instead of Regenerating)
 export const finalizePersona = async (idea: string, builderState: BuilderState): Promise<BrandPersona> => {
-  if (!ai) throw new Error("API 키가 없습니다.");
   
   // 1. Assemble the text fields directly from user-approved drafts
   const basePersona: any = {};
