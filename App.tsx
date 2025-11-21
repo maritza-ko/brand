@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { AnalysisRequest, BrandPersona, BuilderState } from './types';
 import { 
   generateBrandPersonaData, 
-  generateImageWithCustomStyle, 
   generatePlanningGuides,
   finalizePersona
 } from './services/geminiService';
@@ -24,7 +23,6 @@ function App() {
   const [requestData, setRequestData] = useState<AnalysisRequest | null>(null);
   const [guides, setGuides] = useState<Record<string, string[]>>({});
   const [result, setResult] = useState<BrandPersona | null>(null);
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
 
   // 1. Initial Submit (Simple or Start Builder)
   const handleInitialSubmit = async (request: AnalysisRequest, mode: 'simple' | 'advanced') => {
@@ -35,10 +33,8 @@ function App() {
       if (mode === 'simple') {
         // Simple Mode: Generate everything at once
         const personaData = await generateBrandPersonaData(request);
-        const imageBase64 = await generateImageWithCustomStyle(request, personaData);
         
         setResult(personaData);
-        setGeneratedImage(imageBase64);
         setViewMode('RESULT');
       } else {
         // Advanced Mode: Generate Guides & Go to Builder
@@ -66,14 +62,7 @@ function App() {
     try {
       const finalPersona = await finalizePersona(requestData.idea, builderState);
       
-      // Generate Image based on the finalized persona
-      // We can use 'imageStyle' from the first input if user typed it in custom inputs, 
-      // or rely on the finalized keywords/philosophy.
-      // Since builder doesn't explicitly ask for 'imageStyle', we rely on AI inference.
-      const imageBase64 = await generateImageWithCustomStyle(requestData, finalPersona);
-
       setResult(finalPersona);
-      setGeneratedImage(imageBase64);
       setViewMode('RESULT');
     } catch (error) {
       alert("최종 생성 중 오류가 발생했습니다.");
@@ -87,7 +76,6 @@ function App() {
   const handleReset = () => {
     setViewMode('INPUT');
     setResult(null);
-    setGeneratedImage(null);
     setRequestData(null);
     setGuides({});
   };
@@ -111,7 +99,7 @@ function App() {
 
       {/* Main */}
       <main className="flex-grow relative p-4 sm:p-6 lg:p-8">
-        {isLoading && <LoadingScreen />} {/* You might want to pass custom message prop to LoadingScreen */}
+        {isLoading && <LoadingScreen />}
 
         {viewMode === 'INPUT' && (
           <div className="h-full flex items-center justify-center min-h-[80vh]">
@@ -124,6 +112,7 @@ function App() {
             <PersonaBuilder 
               idea={requestData.idea} 
               guides={guides}
+              initialBrandName={requestData.brandName}
               onComplete={handleBuilderComplete}
             />
           </div>
@@ -133,7 +122,6 @@ function App() {
           <div className="animate-fade-in-up">
              <ResultDashboard 
                 data={result} 
-                imageUrl={generatedImage} 
                 onReset={handleReset} 
              />
           </div>
@@ -162,3 +150,4 @@ function App() {
 }
 
 export default App;
+    

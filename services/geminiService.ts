@@ -4,7 +4,7 @@ import { BrandPersona, AnalysisRequest, CustomInputs, PersonaFieldKey, FieldGuid
 
 // API Key hardcoded as requested.
 // Note: Ensure this key has no domain restrictions in Google Cloud Console, or add your Vercel domain to the allowed list.
-const ai = new GoogleGenAI({ apiKey: "AIzaSyA27hzCOJjoycIdm4-yFmywWe7NktGVRU8" });
+const ai = new GoogleGenAI({ apiKey: "AIzaSyCMO5BlFviSyKVLDo0eZu0xdbdbutC_f9c" });
 
 // --- Global Safety Settings (Relaxed to prevent false positives) ---
 const SAFETY_SETTINGS = [
@@ -249,26 +249,48 @@ export const generateFieldDraft = async (
   }
 };
 
-// 3. Finalize and Assemble
+// 3. Finalize and Assemble (UPDATED: Stitching instead of Regenerating)
 export const finalizePersona = async (idea: string, builderState: BuilderState): Promise<BrandPersona> => {
-  let summary = "";
-  Object.entries(builderState).forEach(([key, state]) => {
-    summary += `[${key}]: ${state.draft}\n`;
+  
+  // 1. Assemble the text fields directly from user-approved drafts
+  const basePersona: any = {};
+  
+  // Map builder keys to persona keys
+  FIELD_METADATA.forEach(field => {
+      basePersona[field.key] = builderState[field.key]?.draft || "내용 없음";
   });
+  
+  // Add missing non-builder fields default
+  basePersona.brandNameSuggestions = [];
+
+  // 2. Generate ONLY the Pomelli Visual DNA based on the assembled content
+  const summary = Object.entries(basePersona)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join("\n");
 
   const prompt = `
     ${SYSTEM_INSTRUCTION}
 
-    [브랜드 아이디어]: ${idea}
-    [확정된 브랜드 기획 내용]:
+    [완성된 브랜드 전략]:
     ${summary}
 
-    위 내용을 종합하여 최종 "BrandPersona" JSON 객체를 완성하세요.
+    위 브랜드 전략을 바탕으로, 시각적 아이덴티티인 "Pomelli (Business DNA)" 섹션만 분석하여 생성하세요.
+
+    [요청 사항]
+    아래 JSON 포맷에 맞춰 Pomelli 데이터만 반환하세요.
+
+    {
+         "businessOverview": "한 줄 요약",
+         "tagline": "짧은 영문 태그라인",
+         "brandArchetype": "브랜드 원형",
+         "toneOfVoice": ["형용사1", "형용사2", ...],
+         "brandAesthetic": ["시각적 키워드1", "키워드2", ...],
+         "typography": "폰트 추천",
+         "colors": [{"name": "Main Color", "hex": "#...", "description": "..." }, ... (최소 5개)],
+         "brandValues": [{"title": "가치1", "description": "..." }, ...]
+    }
     
-    Pomelli (Business DNA) 섹션 필수 포함:
-    - colors: Main, Secondary, Accent, Neutral 1, Neutral 2 등 최소 5가지 이상의 색상 팔레트.
-    
-    반드시 JSON 포맷만 반환하세요. 마크다운 코드 블록을 포함하지 마세요.
+    반드시 JSON 포맷만 반환하세요.
   `;
 
   try {
@@ -284,46 +306,19 @@ export const finalizePersona = async (idea: string, builderState: BuilderState):
     const text = response.text;
     if (!text) throw new Error("No data returned");
 
-    return cleanAndParseJson(text) as BrandPersona;
+    const pomelliData = cleanAndParseJson(text);
+
+    // 3. Merge and Return
+    const finalPersona: BrandPersona = {
+        ...basePersona,
+        pomelli: pomelliData
+    };
+
+    return finalPersona;
   } catch (error: any) {
     console.error("Error finalizing persona:", error);
     alert(`최종 생성 중 오류가 발생했습니다: ${error.message}`);
     throw error;
   }
 };
-
-// --- Image Gen ---
-export const generateBrandImage = async (prompt: string): Promise<string | null> => {
-  try {
-    // Using gemini-2.5-flash-image (Nano Banana) for unlimited usage
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: { parts: [{ text: prompt }] },
-      config: {
-        safetySettings: SAFETY_SETTINGS
-      }
-    });
     
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        return `data:image/png;base64,${part.inlineData.data}`;
-      }
-    }
-    return null;
-  } catch (error: any) {
-    console.error("Image Gen Error", error);
-    // Non-blocking error, just log it.
-    return null;
-  }
-};
-
-export const generateImageWithCustomStyle = async (request: AnalysisRequest, persona: BrandPersona): Promise<string | null> => {
-    const aesthetic = persona.pomelli?.brandAesthetic?.slice(0, 3).join(", ") || "Modern design";
-    const colors = persona.pomelli?.colors?.slice(0, 2).map(c => c.name).join(", ") || "Brand Colors";
-    const brandName = persona.brandName || "Brand";
-    
-    // Simple, keyword-based prompt for Nano Banana model success
-    const prompt = `Interior design or Product shot for ${brandName}, ${aesthetic}, ${colors}, bright lighting, photorealistic, high quality`;
-
-    return generateBrandImage(prompt);
-};

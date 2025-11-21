@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 
 const LoadingScreen: React.FC = () => {
@@ -8,7 +9,6 @@ const LoadingScreen: React.FC = () => {
     "경쟁사 대비 차별점을 탐색 중입니다...",
     "타겟 오디언스의 성향을 파악하고 있습니다...",
     "브랜드의 목소리(Tone & Manner)를 다듬고 있습니다...",
-    "Nano Banana 엔진으로 시각적 아이덴티티를 생성 중입니다...",
     "전략 리포트를 작성하고 있습니다..."
   ];
 
@@ -51,3 +51,4 @@ const LoadingScreen: React.FC = () => {
 };
 
 export default LoadingScreen;
+    
