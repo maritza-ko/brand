@@ -2,9 +2,16 @@
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { BrandPersona, AnalysisRequest, CustomInputs, PersonaFieldKey, FieldGuide, FIELD_METADATA, BuilderState } from "../types";
 
-// API Key hardcoded as requested.
-// Note: Ensure this key has no domain restrictions in Google Cloud Console, or add your Vercel domain to the allowed list.
-const ai = new GoogleGenAI({ apiKey: "AIzaSyAA1mo8-okhJFyAb7muzyeIZsel0x7vSs0" });
+// [API 키 설정]
+// 1. Vercel 배포 시: Vercel 설정의 Environment Variables에 'REACT_APP_GEMINI_API_KEY'로 등록하세요.
+// 2. 로컬 테스트 시: 아래 따옴표("") 안에 API 키를 직접 붙여넣으세요.
+const apiKey = process.env.REACT_APP_GEMINI_API_KEY || ""; // 예: "AIzaSy..."
+
+if (!apiKey) {
+  console.warn("API Key is missing. App will load but generation will fail.");
+}
+
+const ai = new GoogleGenAI({ apiKey: apiKey });
 
 // --- Global Safety Settings (Relaxed to prevent false positives) ---
 const SAFETY_SETTINGS = [
@@ -83,6 +90,8 @@ const SYSTEM_INSTRUCTION = `
 
 // --- Standard Generation (Simple Mode) ---
 export const generateBrandPersonaData = async (request: AnalysisRequest): Promise<BrandPersona> => {
+  if (!apiKey) throw new Error("API Key 오류: services/geminiService.ts 파일에 키를 입력했는지 확인하세요.");
+
   const { idea, url, brandName, customInputs } = request;
 
   // 브랜드명 입력 여부 확인 및 처리
@@ -167,8 +176,9 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
     return cleanAndParseJson(text) as BrandPersona;
   } catch (error: any) {
     console.error("Error generating brand persona:", error);
-    // Alert the actual error to help the user debug on Vercel
-    alert(`오류가 발생했습니다: ${error.message || error}`);
+    if (error.message && (error.message.includes("403") || error.message.includes("API key"))) {
+       throw new Error("API Key가 유효하지 않습니다. (403 Permission Denied)");
+    }
     throw error;
   }
 };
@@ -177,6 +187,8 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
 
 // 1. Generate Planning Guides
 export const generatePlanningGuides = async (idea: string, brandName?: string): Promise<Record<string, string[]>> => {
+  if (!apiKey) return DEFAULT_GUIDES; // Fail-safe
+
   const fieldsList = FIELD_METADATA.map(f => f.key).join(", ");
   
   const prompt = `
@@ -210,9 +222,9 @@ export const generatePlanningGuides = async (idea: string, brandName?: string): 
     return cleanAndParseJson(text);
   } catch (error: any) {
     console.warn("AI Guide Generation Failed, falling back to defaults:", error);
-    // Alert only if it's a critical API error (like quota or auth), otherwise silent fallback
+    // Alert only if it's a critical API error
     if (error.message && (error.message.includes("403") || error.message.includes("API key"))) {
-       alert(`API 키 오류입니다. 구글 클라우드 콘솔에서 도메인 제한을 확인하세요.\n${error.message}`);
+       alert(`API 키 오류입니다. 코드를 확인하세요.\n${error.message}`);
     }
     return DEFAULT_GUIDES;
   }
@@ -226,7 +238,8 @@ export const generateFieldDraft = async (
   context: string,
   brandName?: string
 ): Promise<string> => {
-  
+  if (!apiKey) return "API 키 오류: 코드를 확인하세요.";
+
   const finalBrandName = brandName || "미정";
 
   const prompt = `
@@ -268,13 +281,13 @@ export const generateFieldDraft = async (
     return response.text || "내용을 생성할 수 없습니다.";
   } catch (error: any) {
     console.error(`Error generating draft for ${fieldKey}:`, error);
-    // Return the specific error message to the UI
-    return `오류 발생: ${error.message || "알 수 없는 오류"}. (API 키 설정을 확인하세요)`;
+    return `오류 발생: ${error.message || "알 수 없는 오류"}. (API 키를 확인하세요)`;
   }
 };
 
 // 3. Finalize and Assemble (Stitching instead of Regenerating)
 export const finalizePersona = async (idea: string, builderState: BuilderState): Promise<BrandPersona> => {
+  if (!apiKey) throw new Error("API 키가 없습니다.");
   
   // 1. Assemble the text fields directly from user-approved drafts
   const basePersona: any = {};
