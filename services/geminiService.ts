@@ -2,8 +2,8 @@
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { BrandPersona, AnalysisRequest, CustomInputs, PersonaFieldKey, FieldGuide, FIELD_METADATA, BuilderState } from "../types";
 
-// API Key needs to be quoted as a string literal
-// IMPORTANT: The user requested to hardcode the API key here.
+// API Key hardcoded as requested.
+// Note: Ensure this key has no domain restrictions in Google Cloud Console, or add your Vercel domain to the allowed list.
 const ai = new GoogleGenAI({ apiKey: "AIzaSyCMO5BlFviSyKVLDo0eZu0xdbdbutC_f9c" });
 
 // --- Global Safety Settings (Relaxed to prevent false positives) ---
@@ -53,7 +53,7 @@ const cleanAndParseJson = (text: string): any => {
     return JSON.parse(cleanText);
   } catch (e) {
     console.error("JSON Extraction Failed. Raw text:", text);
-    throw new Error("Failed to parse JSON response from AI.");
+    throw new Error("AI 응답 형식이 올바르지 않습니다. 다시 시도해주세요.");
   }
 };
 
@@ -153,8 +153,10 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
     const text = response.text;
     if (!text) throw new Error("No data returned");
     return cleanAndParseJson(text) as BrandPersona;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating brand persona:", error);
+    // Alert the actual error to help the user debug on Vercel
+    alert(`오류가 발생했습니다: ${error.message || error}`);
     throw error;
   }
 };
@@ -194,9 +196,12 @@ export const generatePlanningGuides = async (idea: string, brandName?: string): 
     const text = response.text;
     if (!text) throw new Error("No guides returned");
     return cleanAndParseJson(text);
-  } catch (error) {
+  } catch (error: any) {
     console.warn("AI Guide Generation Failed, falling back to defaults:", error);
-    // Fallback to default guides to prevent app crash
+    // Alert only if it's a critical API error (like quota or auth), otherwise silent fallback
+    if (error.message && (error.message.includes("403") || error.message.includes("API key"))) {
+       alert(`API 키 오류입니다. 구글 클라우드 콘솔에서 도메인 제한을 확인하세요.\n${error.message}`);
+    }
     return DEFAULT_GUIDES;
   }
 };
@@ -237,9 +242,10 @@ export const generateFieldDraft = async (
       }
     });
     return response.text || "내용을 생성할 수 없습니다.";
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error generating draft for ${fieldKey}:`, error);
-    return "오류가 발생했습니다. 다시 시도해주세요.";
+    // Return the specific error message to the UI
+    return `오류 발생: ${error.message || "알 수 없는 오류"}. (API 키 설정을 확인하세요)`;
   }
 };
 
@@ -279,8 +285,9 @@ export const finalizePersona = async (idea: string, builderState: BuilderState):
     if (!text) throw new Error("No data returned");
 
     return cleanAndParseJson(text) as BrandPersona;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error finalizing persona:", error);
+    alert(`최종 생성 중 오류가 발생했습니다: ${error.message}`);
     throw error;
   }
 };
@@ -303,8 +310,9 @@ export const generateBrandImage = async (prompt: string): Promise<string | null>
       }
     }
     return null;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Image Gen Error", error);
+    // Non-blocking error, just log it.
     return null;
   }
 };
