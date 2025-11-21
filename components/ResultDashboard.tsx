@@ -188,6 +188,11 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
     URL.revokeObjectURL(url);
   };
 
+  // Convert array to formatted string for better display in PersonaCard (avoiding badge style)
+  const formattedBrandSuggestions = data.brandNameSuggestions 
+    ? data.brandNameSuggestions.map(s => `- ${s}`).join('\n') 
+    : "";
+
   return (
     <div className="w-full max-w-7xl mx-auto pb-20">
       
@@ -218,21 +223,16 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
         </div>
       </div>
 
-      {/* Top Section: Brand Name Suggestions & Highlights */}
+      {/* Top Section: Brand Name Suggestions */}
       {data.brandNameSuggestions && data.brandNameSuggestions.length > 0 && (
          <div className="mb-8">
-            <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-               <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                 <Icons.Tag className="w-4 h-4" /> 추천 네이밍 후보
-               </h4>
-               <div className="flex flex-wrap gap-3">
-                 {data.brandNameSuggestions.map((name, i) => (
-                   <div key={i} className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-lg font-bold border border-indigo-100">
-                     {name}
-                   </div>
-                 ))}
-               </div>
-            </div>
+             <PersonaCard 
+               title="추천 네이밍 후보" 
+               content={formattedBrandSuggestions} 
+               icon={Icons.Tag} 
+               colorClass="bg-indigo-500"
+               fullWidth={true}
+             />
          </div>
       )}
 
@@ -412,4 +412,3 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
 };
 
 export default ResultDashboard;
-    

@@ -72,19 +72,24 @@ const SYSTEM_INSTRUCTION = `
 당신의 임무는 지루한 설명이 아니라, 고객을 설득하는 매력적인 '전략'과 '스토리'를 창조하는 것입니다.
 
 [작성 절대 원칙 - 위반 시 페널티]
-1. **독립성:** 사용자가 입력한 업종(PC방, 만화카페, 포차 등)의 특성에만 집중하세요.
-2. **구체성:** 추상적인 표현("좋은", "최고의") 대신 구체적인 스펙("RTX 4090", "프라이빗 벙커")을 명시하세요.
-3. **영어 병기 금지(중요):** '핵심 전략 (Core Strategy)' 처럼 괄호 안에 영어를 절대 쓰지 마세요. 문장 중간에도 영어를 섞어 쓰지 마세요. 오직 한국어만 사용하세요.
-4. **분량 제한:** 장황하게 늘어놓지 말고, 핵심만 간결하게 작성하세요. (항목당 400자 이내)
+1. **신병철 박사의 논백경쟁전략(Non-Zero Sum Competition Strategy) 적용:**
+   - 단순한 가격 경쟁(Zero-Sum)이 아니라, 브랜드와 고객이 모두 이기는(Non-Zero Sum) 구조를 설계하세요.
+   - 고객이 겪는 **'결정적 갈등(Conflict)'**이나 **'트레이드오프(Trade-off)'**를 찾아내고, 이를 우리만의 독창적인 방식으로 해결하여 경쟁을 무의미하게 만드세요.
+2. **독립성:** 사용자가 입력한 업종(PC방, 만화카페, 포차 등)의 특성에만 집중하세요.
+3. **구체성:** 추상적인 표현("좋은", "최고의") 대신 구체적인 스펙("RTX 4090", "프라이빗 벙커")을 명시하세요.
+4. **영어 병기 금지(중요):** '핵심 전략 (Core Strategy)' 처럼 괄호 안에 영어를 절대 쓰지 마세요. 문장 중간에도 영어를 섞어 쓰지 마세요. 오직 한국어만 사용하세요.
 5. **톤앤매너:** 딱딱한 논문체가 아니라, 세련되고 감각적인 매거진/제안서 스타일로 작성하세요. 읽는 사람이 바로 이해할 수 있어야 합니다.
-6. **형식:** 
-   - **(볼드체) 핵심 요약 한 문장**
-   - 불렛 포인트(-)로 구체적 실행 방안 3가지
 `;
 
 // --- Standard Generation (Simple Mode) ---
 export const generateBrandPersonaData = async (request: AnalysisRequest): Promise<BrandPersona> => {
   const { idea, url, brandName, customInputs } = request;
+
+  // 브랜드명 입력 여부 확인 및 처리
+  const hasBrandName = brandName && brandName.trim().length > 0;
+  const brandNameInstruction = hasBrandName 
+    ? `[확정된 브랜드명]: "${brandName}"`
+    : `[확정된 브랜드명]: 없음 (공란). \n[중요]: 사용자가 브랜드명을 정하지 않았습니다. 당신이 이 사업 아이디어와 컨셉에 가장 잘 어울리고 기억하기 쉬운 **브랜드 네이밍을 직접 창작**하여 'brandName' 필드에 입력하세요. 절대로 '미정'이나 'Undecided'라고 적지 마세요.`;
 
   let customInstructions = "";
   if (customInputs) {
@@ -98,8 +103,7 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
   const prompt = `
     ${SYSTEM_INSTRUCTION}
 
-    사용자가 입력한 아이디어의 업종(PC방, 만화카페, 포차 등)을 정확히 파악하고,
-    그 업종의 본질에 맞는 완벽한 브랜드 페르소나 JSON을 완성하세요.
+    사용자가 입력한 아이디어의 업종을 정확히 파악하고, 완벽한 브랜드 페르소나 JSON을 완성하세요.
     
     [Reference Example]
     ${EXCELLENT_EXAMPLE}
@@ -107,16 +111,22 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
     [입력 정보]
     - 브랜드/사업 아이디어: ${idea}
     - 참고 URL: ${url || "없음"}
-    - 확정된 브랜드명: ${brandName || "미정"}
+    ${brandNameInstruction}
 
     ${customInstructions ? `[사용자 추가 가이드]\n${customInstructions}` : ""}
+
+    [간편 생성 작성 필수 지침]
+    1. **브랜드명 창작:** 입력된 브랜드명이 없다면, 당신이 최고의 네이밍을 지어야 합니다. '미정' 금지.
+    2. **분량 및 깊이:** '간편 생성'이지만 내용은 깊이가 있어야 합니다. 각 텍스트 항목(철학, 전략, 혜택 등)은 **최소 300자 이상, 500자 내외**로 작성하여 충분한 설명력을 갖추세요.
+    3. **구조화:** 줄글로만 쓰지 말고, 핵심 키워드나 불렛 포인트(-)를 적절히 사용하여 가독성을 높이세요.
+    4. **톤앤매너:** 고객을 매혹시키는 세련된 카피라이팅 톤을 유지하세요.
 
     [요청 사항]
     JSON 객체로 반환하세요.
     
     [JSON 필드 구조 (총 17개 항목 + Pomelli)]
-    1. brandName
-    2. brandNameSuggestions
+    1. brandName (입력값이 없으면 창작된 이름 필수)
+    2. brandNameSuggestions (추가 후보 3개)
     3. philosophy
     4. slogan
     5. coreTechnology
@@ -170,12 +180,12 @@ export const generatePlanningGuides = async (idea: string, brandName?: string): 
   const fieldsList = FIELD_METADATA.map(f => f.key).join(", ");
   
   const prompt = `
-    당신은 까다롭고 날카로운 브랜드 컨설팅 퍼실리테이터입니다.
+    당신은 신병철 박사의 '논백경쟁전략(Non-Zero Sum Competition Strategy)'에 능통한 브랜드 컨설팅 퍼실리테이터입니다.
     사용자 아이디어: "${idea}"
     브랜드명: "${brandName || "미정"}"
 
     다음 17가지 항목에 대해 사용자에게 질문할 "기획 가이드(질문)" 3가지를 제안하세요.
-    업종에 맞는 구체적이고 날카로운 질문이어야 합니다.
+    단순한 질문이 아니라, 고객의 결정적 갈등(Conflict)을 찾아내고, 이를 해결하여 비교 우위를 점할 수 있도록 유도하는 날카로운 질문이어야 합니다.
 
     대상 항목: ${fieldsList}
     
@@ -208,7 +218,7 @@ export const generatePlanningGuides = async (idea: string, brandName?: string): 
   }
 };
 
-// 2. Generate Draft for a SINGLE field
+// 2. Generate Draft for a SINGLE field (Pro Mode)
 export const generateFieldDraft = async (
   fieldKey: string, 
   idea: string, 
@@ -230,13 +240,21 @@ export const generateFieldDraft = async (
     [문맥 - 다른 항목들]: ${context}
 
     [요청]
-    위 내용을 바탕으로 항목(${fieldKey})을 작성하세요.
+    위 내용을 바탕으로 항목(${fieldKey})을 전문가 수준으로 깊이 있게 작성하세요.
     
-    **주의사항(필독):**
-    1. 제목(예: ### 브랜드 철학)을 생성하지 마세요. 내용만 바로 시작하세요.
-    2. 절대 괄호 열고 영어를 쓰지 마세요. 예: '핵심 전략 (Core Strategy)' -> (X) '핵심 전략' -> (O). 영어 병기 발견 시 실패로 간주합니다.
-    3. 총 분량은 300~400자로 제한합니다. 절대 길게 쓰지 마세요.
-    4. 첫 줄은 이 항목을 관통하는 강렬한 한 문장(볼드체)으로 시작하고, 그 아래에 3가지 구체적인 내용을 불렛포인트로 나열하세요.
+    **작성 지침 (반드시 준수):**
+    1. **신병철 박사의 논백경쟁전략 적용 (필수):**
+       - 고객이 겪는 **'결정적 갈등(Conflict)'**이 무엇인지 명확히 정의하고, 이를 어떻게 해소하여 **'비교 불가한 우위'**를 점하는지 논리적으로 서술하세요.
+       - 경쟁사와의 무의미한 소모전(Zero-Sum)을 피하고, 새로운 가치를 창출하는(Non-Zero Sum) 솔루션을 제시하세요.
+    2. **분량 확장 (중요):** 총 분량은 **800~1000자 내외**로 아주 상세하게 작성하세요. 짧게 끝내지 말고, 충분한 논리와 근거를 들어 설득력 있게 전개하세요.
+    3. **영어 병기 절대 금지:** '핵심 전략 (Core Strategy)' 처럼 괄호 안에 영어를 절대 쓰지 마세요. 순수 한글로만 매끄럽게 작성하세요.
+    4. **구조 (템플릿):** 
+       - **[강렬한 한 줄 헤드라인]**: 이 항목을 관통하는 매력적인 카피 (볼드체)
+       - **1. 갈등의 발견 (Conflict)**: 고객이 기존 시장에서 겪는 결정적인 딜레마나 불편함.
+       - **2. 압도적 해결책 (Solution)**: 우리 브랜드가 제시하는 '논백경쟁' 기반의 독창적 솔루션.
+       - **3. 구체적 실행 (Action)**: 실제로 적용되는 스펙, 서비스, 기술 등 3가지 이상.
+       - **4. 기대 효과 (Benefit)**: 이를 통해 고객이 얻게 될 혜택과 브랜드가 시장에서 갖게 될 위상.
+       - 위 구조를 기반으로 하되, 딱딱하지 않게 '제안서' 느낌으로 작성하세요.
   `;
 
   try {
@@ -255,7 +273,7 @@ export const generateFieldDraft = async (
   }
 };
 
-// 3. Finalize and Assemble (UPDATED: Stitching instead of Regenerating)
+// 3. Finalize and Assemble (Stitching instead of Regenerating)
 export const finalizePersona = async (idea: string, builderState: BuilderState): Promise<BrandPersona> => {
   
   // 1. Assemble the text fields directly from user-approved drafts
@@ -284,6 +302,7 @@ export const finalizePersona = async (idea: string, builderState: BuilderState):
 
     [요청 사항]
     아래 JSON 포맷에 맞춰 Pomelli 데이터만 반환하세요.
+    색상(Colors)은 최소 5가지(Main, Secondary, Accent, Neutral 1, Neutral 2)를 포함해야 합니다.
 
     {
          "businessOverview": "한 줄 요약",
