@@ -4,7 +4,7 @@ import { BrandPersona, AnalysisRequest, CustomInputs, PersonaFieldKey, FieldGuid
 
 // API Key hardcoded as requested.
 // Note: Ensure this key has no domain restrictions in Google Cloud Console, or add your Vercel domain to the allowed list.
-const ai = new GoogleGenAI({ apiKey: "AIzaSyA27hzCOJjoycIdm4-yFmywWe7NktGVRU8" });
+const ai = new GoogleGenAI({ apiKey: "AIzaSyAA1mo8-okhJFyAb7muzyeIZsel0x7vSs0" });
 
 // --- Global Safety Settings (Relaxed to prevent false positives) ---
 const SAFETY_SETTINGS = [
