@@ -2,16 +2,17 @@
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { BrandPersona, AnalysisRequest, CustomInputs, PersonaFieldKey, FieldGuide, FIELD_METADATA, BuilderState } from "../types";
 
-// [API 키 설정]
-// 1. Vercel 배포 시: Vercel 설정의 Environment Variables에 'REACT_APP_GEMINI_API_KEY'로 등록하세요.
-// 2. 로컬 테스트 시: 아래 따옴표("") 안에 API 키를 직접 붙여넣으세요.
-const apiKey = process.env.REACT_APP_GEMINI_API_KEY || ""; // 예: "AIzaSy..."
+// [보안 설정 변경]
+// API 키를 코드에 직접 적지 않습니다. (적으면 구글이 감지하여 즉시 차단함)
+// Vercel 환경 변수에서 가져옵니다.
+const apiKey = process.env.REACT_APP_GEMINI_API_KEY;
 
 if (!apiKey) {
-  console.warn("API Key is missing. App will load but generation will fail.");
+  console.warn("Warning: API Key is missing. Please check Vercel Environment Variables.");
 }
 
-const ai = new GoogleGenAI({ apiKey: apiKey });
+// API 키가 없을 경우 초기화하지 않음 (호출 시 에러 처리)
+const ai = apiKey ? new GoogleGenAI({ apiKey: apiKey }) : null;
 
 // --- Global Safety Settings (Relaxed to prevent false positives) ---
 const SAFETY_SETTINGS = [
@@ -90,7 +91,7 @@ const SYSTEM_INSTRUCTION = `
 
 // --- Standard Generation (Simple Mode) ---
 export const generateBrandPersonaData = async (request: AnalysisRequest): Promise<BrandPersona> => {
-  if (!apiKey) throw new Error("API Key 오류: services/geminiService.ts 파일에 키를 입력했는지 확인하세요.");
+  if (!ai) throw new Error("API Key가 설정되지 않았습니다. Vercel 환경변수(REACT_APP_GEMINI_API_KEY)를 확인하세요.");
 
   const { idea, url, brandName, customInputs } = request;
 
@@ -177,7 +178,7 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
   } catch (error: any) {
     console.error("Error generating brand persona:", error);
     if (error.message && (error.message.includes("403") || error.message.includes("API key"))) {
-       throw new Error("API Key가 유효하지 않습니다. (403 Permission Denied)");
+       throw new Error("API Key 권한 오류. (구글 Cloud Console에서 Referrer 설정을 확인하세요)");
     }
     throw error;
   }
@@ -187,7 +188,7 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
 
 // 1. Generate Planning Guides
 export const generatePlanningGuides = async (idea: string, brandName?: string): Promise<Record<string, string[]>> => {
-  if (!apiKey) return DEFAULT_GUIDES; // Fail-safe
+  if (!ai) return DEFAULT_GUIDES; // Fail-safe
 
   const fieldsList = FIELD_METADATA.map(f => f.key).join(", ");
   
@@ -222,10 +223,6 @@ export const generatePlanningGuides = async (idea: string, brandName?: string): 
     return cleanAndParseJson(text);
   } catch (error: any) {
     console.warn("AI Guide Generation Failed, falling back to defaults:", error);
-    // Alert only if it's a critical API error
-    if (error.message && (error.message.includes("403") || error.message.includes("API key"))) {
-       alert(`API 키 오류입니다. 코드를 확인하세요.\n${error.message}`);
-    }
     return DEFAULT_GUIDES;
   }
 };
@@ -238,7 +235,7 @@ export const generateFieldDraft = async (
   context: string,
   brandName?: string
 ): Promise<string> => {
-  if (!apiKey) return "API 키 오류: 코드를 확인하세요.";
+  if (!ai) return "API 키 오류: Vercel 환경 변수를 확인하세요.";
 
   const finalBrandName = brandName || "미정";
 
@@ -263,10 +260,10 @@ export const generateFieldDraft = async (
     3. **영어 병기 절대 금지:** '핵심 전략 (Core Strategy)' 처럼 괄호 안에 영어를 절대 쓰지 마세요. 순수 한글로만 매끄럽게 작성하세요.
     4. **구조 (템플릿):** 
        - **[강렬한 한 줄 헤드라인]**: 이 항목을 관통하는 매력적인 카피 (볼드체)
-       - **1. 갈등의 발견 (Conflict)**: 고객이 기존 시장에서 겪는 결정적인 딜레마나 불편함.
-       - **2. 압도적 해결책 (Solution)**: 우리 브랜드가 제시하는 '논백경쟁' 기반의 독창적 솔루션.
-       - **3. 구체적 실행 (Action)**: 실제로 적용되는 스펙, 서비스, 기술 등 3가지 이상.
-       - **4. 기대 효과 (Benefit)**: 이를 통해 고객이 얻게 될 혜택과 브랜드가 시장에서 갖게 될 위상.
+       - **1. 갈등의 발견**: 고객이 기존 시장에서 겪는 결정적인 딜레마나 불편함.
+       - **2. 압도적 해결책**: 우리 브랜드가 제시하는 '논백경쟁' 기반의 독창적 솔루션.
+       - **3. 구체적 실행**: 실제로 적용되는 스펙, 서비스, 기술 등 3가지 이상.
+       - **4. 기대 효과**: 이를 통해 고객이 얻게 될 혜택과 브랜드가 시장에서 갖게 될 위상.
        - 위 구조를 기반으로 하되, 딱딱하지 않게 '제안서' 느낌으로 작성하세요.
   `;
 
@@ -281,13 +278,13 @@ export const generateFieldDraft = async (
     return response.text || "내용을 생성할 수 없습니다.";
   } catch (error: any) {
     console.error(`Error generating draft for ${fieldKey}:`, error);
-    return `오류 발생: ${error.message || "알 수 없는 오류"}. (API 키를 확인하세요)`;
+    return `오류 발생: ${error.message || "알 수 없는 오류"}. (API 키 권한을 확인하세요)`;
   }
 };
 
 // 3. Finalize and Assemble (Stitching instead of Regenerating)
 export const finalizePersona = async (idea: string, builderState: BuilderState): Promise<BrandPersona> => {
-  if (!apiKey) throw new Error("API 키가 없습니다.");
+  if (!ai) throw new Error("API 키가 없습니다.");
   
   // 1. Assemble the text fields directly from user-approved drafts
   const basePersona: any = {};
