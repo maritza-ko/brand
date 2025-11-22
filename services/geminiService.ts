@@ -7,7 +7,11 @@ import { BrandPersona, AnalysisRequest, CustomInputs, PersonaFieldKey, FieldGuid
 // 하이브리드 방식: Vercel 환경 변수가 있으면 사용, 없으면 하드코딩된 키(사용자 제공)를 사용
 // [보안 및 안정성 최우선 설정]
 // 하이브리드 방식: Vercel/Vite 환경 변수가 있으면 사용, 없으면 하드코딩된 키(사용자 제공)를 사용
-const getApiKey = () => {
+const getApiKey = (userProvidedKey?: string) => {
+  // 0. User Provided Key (Highest Priority)
+  if (userProvidedKey && userProvidedKey.trim().length > 0) {
+    return userProvidedKey.trim();
+  }
   // 1. Vite / Modern Browsers
   if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) {
     return import.meta.env.VITE_GEMINI_API_KEY;
@@ -31,9 +35,7 @@ const getApiKey = () => {
   return "AIzaSyAf8BsOSUlcr3wzJ8bGTv2Gc4qEnz8dIW0";
 };
 
-const apiKey = getApiKey();
-
-const ai = new GoogleGenAI({ apiKey: apiKey });
+const getAI = (apiKey?: string) => new GoogleGenAI({ apiKey: getApiKey(apiKey) });
 
 // --- Global Safety Settings ---
 const SAFETY_SETTINGS = [
@@ -129,8 +131,9 @@ const SYSTEM_INSTRUCTION = `
 `;
 
 // --- Standard Generation (Simple Mode) ---
-export const generateBrandPersonaData = async (request: AnalysisRequest): Promise<BrandPersona> => {
+export const generateBrandPersonaData = async (request: AnalysisRequest, apiKey?: string): Promise<BrandPersona> => {
   const { idea, url, brandName, customInputs } = request;
+  const ai = getAI(apiKey);
 
   const hasBrandName = brandName && brandName.trim().length > 0;
   const brandNameInstruction = hasBrandName
@@ -220,14 +223,15 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
     return result as BrandPersona;
   } catch (error: any) {
     console.error("Error generating brand persona:", error);
-    throw new Error(`생성 중 오류가 발생했습니다: ${error.message}`);
+    throw error; // Re-throw to let UI handle it
   }
 };
 
 // --- Builder Mode Functions ---
 
-export const generatePlanningGuides = async (idea: string, brandName?: string): Promise<Record<string, string[]>> => {
+export const generatePlanningGuides = async (idea: string, brandName?: string, apiKey?: string): Promise<Record<string, string[]>> => {
   const fieldsList = FIELD_METADATA.map(f => f.key).join(", ");
+  const ai = getAI(apiKey);
 
   const prompt = `
     당신은 신병철 박사의 '논백경쟁전략' 전문가입니다.
@@ -271,10 +275,12 @@ export const generateFieldDraft = async (
   userInputs: string[], // Array input
   guides: string[],
   context: string,
-  brandName?: string
+  brandName?: string,
+  apiKey?: string
 ): Promise<string> => {
 
   const finalBrandName = brandName || "미정";
+  const ai = getAI(apiKey);
 
   // Construct Q&A format
   const qnaContext = guides.map((q, i) => `질문 ${i + 1}: ${q}\n사용자 답변 ${i + 1}: ${userInputs[i] || "답변 없음"}`).join("\n\n");
@@ -318,13 +324,14 @@ export const generateFieldDraft = async (
     return response.text || "내용을 생성할 수 없습니다.";
   } catch (error: any) {
     console.error(`Error generating draft for ${fieldKey}:`, error);
-    return `오류 발생: ${error.message || "알 수 없는 오류"}.`;
+    throw error;
   }
 };
 
 // 3. Finalize and Assemble
-export const finalizePersona = async (idea: string, builderState: BuilderState): Promise<BrandPersona> => {
+export const finalizePersona = async (idea: string, builderState: BuilderState, apiKey?: string): Promise<BrandPersona> => {
 
+  const ai = getAI(apiKey);
   // Assemble drafts directly (No re-generation to avoid errors)
   const basePersona: any = {};
   FIELD_METADATA.forEach(field => {
@@ -383,10 +390,6 @@ export const finalizePersona = async (idea: string, builderState: BuilderState):
     return finalPersona;
   } catch (error: any) {
     console.error("Error finalizing persona:", error);
-    // Return partial data with default Pomelli to prevent crash
-    return {
-      ...basePersona,
-      pomelli: DEFAULT_POMELLI
-    };
+    throw error;
   }
 };

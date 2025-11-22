@@ -1,14 +1,14 @@
 import React from 'react';
-import { 
-  Sparkles, 
-  Globe, 
-  Lightbulb, 
-  Target, 
-  Users, 
-  Zap, 
-  Award, 
-  TrendingUp, 
-  Heart, 
+import {
+  Sparkles,
+  Globe,
+  Lightbulb,
+  Target,
+  Users,
+  Zap,
+  Award,
+  TrendingUp,
+  Heart,
   ShieldCheck,
   Gem,
   Smile,
@@ -21,7 +21,12 @@ import {
   ArrowRight,
   Palette,
   Download,
-  FileText
+  FileText,
+  Settings,
+  X,
+  Eye,
+  EyeOff,
+  Info
 } from 'lucide-react';
 
 export const Icons = {
@@ -46,5 +51,10 @@ export const Icons = {
   ArrowRight,
   Palette,
   Download,
-  FileText
+  FileText,
+  Settings,
+  X,
+  Eye,
+  EyeOff,
+  Info
 };

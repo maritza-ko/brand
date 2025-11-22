@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Icons } from './Icons';
-import { 
-  BuilderState, 
-  PersonaFieldKey, 
-  FIELD_METADATA, 
+import {
+  BuilderState,
+  PersonaFieldKey,
+  FIELD_METADATA,
   FieldState
 } from '../types';
 import { generateFieldDraft } from '../services/geminiService';
@@ -12,19 +12,20 @@ import { generateFieldDraft } from '../services/geminiService';
 interface PersonaBuilderProps {
   idea: string;
   guides: Record<string, string[]>;
-  initialBrandName?: string; 
+  initialBrandName?: string;
   onComplete: (finalState: BuilderState) => void;
+  apiKey?: string;
 }
 
-const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBrandName, onComplete }) => {
+const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBrandName, onComplete, apiKey }) => {
   const [builderState, setBuilderState] = useState<BuilderState>({} as BuilderState);
   const [expandedField, setExpandedField] = useState<PersonaFieldKey | null>(null);
-  
+
   // Array of strings for 3 answers
   const [currentUserInputs, setCurrentUserInputs] = useState<string[]>(["", "", ""]);
-  
+
   const [isGenerating, setIsGenerating] = useState(false);
-  
+
   // Refs to scroll items into view
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
@@ -37,8 +38,8 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
         let initialFinalized = false;
 
         if (field.key === 'brandName' && initialBrandName) {
-            initialDraft = initialBrandName;
-            initialFinalized = true;
+          initialDraft = initialBrandName;
+          initialFinalized = true;
         }
 
         initial[field.key] = {
@@ -50,12 +51,12 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
         };
       });
       setBuilderState(initial);
-      
+
       // If brand name provided, jump to next, else start at brandName
       if (initialBrandName) {
-         setExpandedField('philosophy');
+        setExpandedField('philosophy');
       } else {
-         setExpandedField('brandName');
+        setExpandedField('brandName');
       }
     }
   }, []);
@@ -63,21 +64,21 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
   // Auto-scroll and load inputs when expandedField changes
   useEffect(() => {
     if (expandedField) {
-        const index = FIELD_METADATA.findIndex(f => f.key === expandedField);
-        if (index !== -1 && itemRefs.current[index]) {
-            // Load saved inputs for this field
-            const savedInputs = builderState[expandedField]?.userInputs;
-            if (savedInputs && Array.isArray(savedInputs) && savedInputs.length === 3) {
-              setCurrentUserInputs(savedInputs);
-            } else {
-              setCurrentUserInputs(["", "", ""]);
-            }
-
-            // Delay slightly to allow accordion animation to start
-            setTimeout(() => {
-                itemRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }, 200);
+      const index = FIELD_METADATA.findIndex(f => f.key === expandedField);
+      if (index !== -1 && itemRefs.current[index]) {
+        // Load saved inputs for this field
+        const savedInputs = builderState[expandedField]?.userInputs;
+        if (savedInputs && Array.isArray(savedInputs) && savedInputs.length === 3) {
+          setCurrentUserInputs(savedInputs);
+        } else {
+          setCurrentUserInputs(["", "", ""]);
         }
+
+        // Delay slightly to allow accordion animation to start
+        setTimeout(() => {
+          itemRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 200);
+      }
     }
   }, [expandedField]);
 
@@ -109,7 +110,7 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
       // Current Brand Name context
       let currentBrandName = initialBrandName;
       if (!currentBrandName && builderState['brandName']?.isFinalized) {
-         currentBrandName = builderState['brandName'].draft;
+        currentBrandName = builderState['brandName'].draft;
       }
 
       const context = Object.entries(builderState)
@@ -122,17 +123,17 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
       const currentGuides = guides[key] || ["가이드 질문 1", "가이드 질문 2", "가이드 질문 3"];
 
       // Call service with array inputs
-      const draft = await generateFieldDraft(key, idea, currentUserInputs, currentGuides, context, currentBrandName);
+      const draft = await generateFieldDraft(key, idea, currentUserInputs, currentGuides, context, currentBrandName, apiKey);
 
       setBuilderState(prev => ({
         ...prev,
-        [key]: { 
-          ...prev[key], 
-          draft: draft, 
-          userInputs: currentUserInputs, 
+        [key]: {
+          ...prev[key],
+          draft: draft,
+          userInputs: currentUserInputs,
           history: [...prev[key].history, draft],
           isLoading: false,
-          isFinalized: true 
+          isFinalized: true
         }
       }));
 
@@ -142,7 +143,7 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
         const nextField = FIELD_METADATA[currentIndex + 1];
         setTimeout(() => {
           setExpandedField(nextField.key);
-        }, 800); 
+        }, 800);
       }
 
     } catch (e) {
@@ -169,8 +170,8 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
       <div className="sticky top-16 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200 mb-6 px-4 py-4 rounded-b-2xl shadow-sm">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-             <Icons.Briefcase className="w-5 h-5 text-indigo-600" />
-             브랜드 페르소나 워크숍
+            <Icons.Briefcase className="w-5 h-5 text-indigo-600" />
+            브랜드 페르소나 워크숍
           </h2>
           <span className="text-sm font-bold text-indigo-600">{progress}% 완성</span>
         </div>
@@ -188,12 +189,12 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
             const isDone = state?.isFinalized;
 
             return (
-              <div 
-                key={field.key} 
+              <div
+                key={field.key}
                 ref={el => { itemRefs.current[index] = el; }}
                 className={`bg-white rounded-2xl border transition-all duration-300 overflow-hidden ${isOpen ? 'border-indigo-500 shadow-md ring-1 ring-indigo-100' : 'border-slate-200 hover:border-indigo-300'}`}
               >
-                <button 
+                <button
                   onClick={() => handleExpand(field.key)}
                   className="w-full px-6 py-4 flex items-center justify-between bg-white hover:bg-slate-50 transition-colors text-left"
                 >
@@ -212,11 +213,11 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
                 {isOpen && (
                   <div className="px-6 pb-6 animate-fade-in">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      
+
                       {/* Guide & Input Section - 3 Separate Inputs */}
                       <div className="space-y-4 border-r md:border-r-0 border-slate-100 md:pr-4">
                         <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                           <h4 className="flex items-center gap-2 text-sm font-bold text-indigo-800 mb-1">
+                          <h4 className="flex items-center gap-2 text-sm font-bold text-indigo-800 mb-1">
                             <Icons.Lightbulb className="w-4 h-4" />
                             상세 기획 가이드
                           </h4>
@@ -230,7 +231,7 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
                                 <span className="inline-block w-5 h-5 bg-indigo-100 text-indigo-700 rounded-full text-xs text-center leading-5 mr-2">{i + 1}</span>
                                 {guide}
                               </label>
-                              <textarea 
+                              <textarea
                                 value={currentUserInputs[i]}
                                 onChange={(e) => handleInputChange(i, e.target.value)}
                                 placeholder="답변을 입력하세요."
@@ -239,23 +240,23 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
                               />
                             </div>
                           ))}
-                          
+
                           {!state?.isFinalized ? (
-                             <button 
-                               onClick={() => handleGenerateDraft(field.key)}
-                               disabled={currentUserInputs.every(s => !s.trim()) || state?.isLoading}
-                               className="mt-4 w-full py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 transition-colors flex items-center justify-center gap-2 shadow-md"
-                             >
-                               {state?.isLoading ? '전략 통합 및 생성 중...' : '답변 제출 및 초안 생성'}
-                               {!state?.isLoading && <Icons.Sparkles className="w-4 h-4" />}
-                             </button>
+                            <button
+                              onClick={() => handleGenerateDraft(field.key)}
+                              disabled={currentUserInputs.every(s => !s.trim()) || state?.isLoading}
+                              className="mt-4 w-full py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 transition-colors flex items-center justify-center gap-2 shadow-md"
+                            >
+                              {state?.isLoading ? '전략 통합 및 생성 중...' : '답변 제출 및 초안 생성'}
+                              {!state?.isLoading && <Icons.Sparkles className="w-4 h-4" />}
+                            </button>
                           ) : (
-                            <button 
-                               onClick={() => handleRefine(field.key)}
-                               className="mt-4 w-full py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors shadow-sm"
-                             >
-                               수정하기 (다시 생성)
-                             </button>
+                            <button
+                              onClick={() => handleRefine(field.key)}
+                              className="mt-4 w-full py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors shadow-sm"
+                            >
+                              수정하기 (다시 생성)
+                            </button>
                           )}
                         </div>
                       </div>
@@ -265,10 +266,10 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
                         <h4 className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wide">AI Draft Result</h4>
                         {state?.isLoading ? (
                           <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3 min-h-[300px]">
-                             <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-                             <span className="text-sm animate-pulse text-center px-4">
-                               답변을 분석하여<br/>최적의 페르소나를 생성하고 있습니다...
-                             </span>
+                            <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                            <span className="text-sm animate-pulse text-center px-4">
+                              답변을 분석하여<br />최적의 페르소나를 생성하고 있습니다...
+                            </span>
                           </div>
                         ) : state?.draft ? (
                           <div className="prose prose-sm max-w-none text-slate-700 leading-relaxed whitespace-pre-wrap animate-fade-in">
@@ -276,15 +277,15 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
                           </div>
                         ) : (
                           <div className="h-full flex items-center justify-center text-slate-400 text-sm min-h-[300px] text-center px-4">
-                            가이드 질문에 답변을 입력하면<br/>AI가 전문적인 전략 문서를 완성해드립니다.
+                            가이드 질문에 답변을 입력하면<br />AI가 전문적인 전략 문서를 완성해드립니다.
                           </div>
                         )}
                         {state?.isFinalized && (
-                           <div className="absolute top-4 right-4">
-                              <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold flex items-center gap-1">
-                                <Icons.ShieldCheck className="w-3 h-3" /> 완료됨
-                              </span>
-                           </div>
+                          <div className="absolute top-4 right-4">
+                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold flex items-center gap-1">
+                              <Icons.ShieldCheck className="w-3 h-3" /> 완료됨
+                            </span>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -298,20 +299,20 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
 
       <div className="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 p-4 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
-           <div className="text-sm text-slate-500">
-             <span className="font-bold text-indigo-600">{completedCount}</span> / {totalCount} 항목 작성 완료
-           </div>
-           <button 
-             onClick={() => onComplete(builderState)}
-             disabled={completedCount < 3}
-             className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 transition-colors shadow-lg flex items-center gap-2"
-           >
-             <span>최종 페르소나 완성하기</span>
-             <Icons.ArrowRight className="w-4 h-4" />
-           </button>
+          <div className="text-sm text-slate-500">
+            <span className="font-bold text-indigo-600">{completedCount}</span> / {totalCount} 항목 작성 완료
+          </div>
+          <button
+            onClick={() => onComplete(builderState)}
+            disabled={completedCount < 3}
+            className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 transition-colors shadow-lg flex items-center gap-2"
+          >
+            <span>최종 페르소나 완성하기</span>
+            <Icons.ArrowRight className="w-4 h-4" />
+          </button>
         </div>
       </div>
-      
+
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; }
