@@ -295,34 +295,50 @@ export const generateFieldDraft = async (
 
   const finalBrandName = brandName || "미정";
   const ai = getAI(apiKey);
+  const isBrandNameField = fieldKey === 'brandName';
 
   // Construct Q&A format
   const qnaContext = guides.map((q, i) => `[질문 ${i + 1}]: ${q}\n[답변 ${i + 1}]: ${userInputs[i] || "답변 없음"}`).join("\n\n");
 
+  // Special instruction for Brand Name field
+  const brandNameInstruction = isBrandNameField
+    ? `
+      **[중요: 브랜드 네이밍 미션]**
+      현재는 '브랜드명'을 확정하는 단계입니다.
+      사용자가 답변에서 명확한 이름을 제시했다면 그것을 사용하고, 
+      **만약 제시하지 않았다면 당신이 답변의 맥락(철학, 가치)을 꿰뚫는 최적의 브랜드명을 창작하여 제안하세요.**
+      
+      작성 시, 제안한(혹은 확정된) **그 브랜드명을 문장의 주어로 사용하여** 전략을 풀어나가세요.
+      절대로 "우리의 브랜드명은..." 이라고 뭉뚱그려 말하지 마세요.
+      `
+    : `
+      [확정된 브랜드명]: ${finalBrandName}
+      **[작성 원칙]**: 반드시 위 브랜드명("${finalBrandName}")을 주어로 사용하여 구체적으로 서술하세요.
+      `;
+
   const prompt = `
     ${SYSTEM_INSTRUCTION}
     
-    [확정된 브랜드명]: ${finalBrandName}
     현재 작성 중인 항목: "${fieldKey}"
     브랜드 아이디어: "${idea}"
     
+    ${brandNameInstruction}
+
     [사용자와의 심층 인터뷰 (Q&A)]
     ${qnaContext}
 
     [문맥 - 이미 작성된 다른 항목들]: ${context}
 
     [요청]
-    사용자의 답변을 단순 요약하지 말고, **'논백경쟁전략'의 철학을 녹여내어** 전략 문서를 작성하세요.
-    
-    **[작성 금지 사항]**
-    1. **'논백경쟁', 'Non-Zero Sum', '중간계' 같은 이론적 용어를 직접적으로 언급하지 마세요.** 고객이 읽었을 때 자연스럽게 설득되도록 작성해야 합니다.
-    2. **추상적인 메타 발언 금지:** "우리의 브랜드명은..." 처럼 설명하지 말고, **실제 브랜드명("${finalBrandName}")을 주어로 사용하여** 구체적으로 서술하세요. (예: "${finalBrandName}은 친구들과의...")
-    3. **영어 병기 및 괄호 장식 금지:** 괄호 안에 영어를 쓰지 마세요.
+    사용자의 3가지 답변을 파편적으로 요약하지 말고, **하나의 완결된 논리(Context -> Solution -> Experience)**로 통합하여 서술하세요.
+    **'논백경쟁전략'의 철학을 녹여내되, 이론적 용어는 절대 사용하지 마세요.**
 
     **심층 기획 작성 지침 (필수 준수):**
-    1. **밀도 있는 분량:** 기존보다 70% 수준으로 줄여서, **군더더기 없이 핵심만 타격감 있게** 작성하세요. (350자 내외)
+    1. **밀도 있는 분량:** 350자 내외로 핵심만 타격감 있게 작성.
     2. **출력 구조 (반드시 지킬 것):**
        
+       ${isBrandNameField ? `### 제안 브랜드명\n(당신이 창작하거나 사용자가 제시한 브랜드명)` : ''}
+
        ### 핵심 갈등
        고객이 겪고 있는 본질적인 문제와 결핍을 정의합니다.
 
@@ -331,7 +347,7 @@ export const generateFieldDraft = async (
 
        ### 압도적 솔루션
        경쟁사가 흉내 낼 수 없는 우리만의 해결책을 구체적으로 제시합니다.
-       (만약 'brandName' 항목이라면, 반드시 브랜드명 "${finalBrandName}"을 언급하며 그 의미를 풀이하세요.)
+       (반드시 브랜드명을 언급하며 설명하세요.)
 
        ### 고객 임팩트
        이를 통해 고객의 삶이 어떻게 바뀌는지 단정적으로 서술합니다.
