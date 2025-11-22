@@ -263,12 +263,12 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
 
                       {/* Result Section */}
                       <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 relative h-fit sticky top-24">
-                        <h4 className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wide">AI Draft Result</h4>
+                        <h4 className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wide">Strategic Definition (전략 정의)</h4>
                         {state?.isLoading ? (
                           <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3 min-h-[300px]">
                             <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
                             <span className="text-sm animate-pulse text-center px-4">
-                              답변을 분석하여<br />최적의 페르소나를 생성하고 있습니다...
+                              고객의 갈등을 해결할<br />압도적 솔루션을 설계하고 있습니다...
                             </span>
                           </div>
                         ) : state?.draft ? (
@@ -277,7 +277,7 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
                           </div>
                         ) : (
                           <div className="h-full flex items-center justify-center text-slate-400 text-sm min-h-[300px] text-center px-4">
-                            가이드 질문에 답변을 입력하면<br />AI가 전문적인 전략 문서를 완성해드립니다.
+                            심층 질문에 답변하면<br />논백경쟁전략이 적용된 브랜드 헌장이 완성됩니다.
                           </div>
                         )}
                         {state?.isFinalized && (

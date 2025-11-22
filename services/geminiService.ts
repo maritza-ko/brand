@@ -4,8 +4,6 @@ import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { BrandPersona, AnalysisRequest, CustomInputs, PersonaFieldKey, FieldGuide, FIELD_METADATA, BuilderState } from "../types";
 
 // [보안 및 안정성 최우선 설정]
-// 하이브리드 방식: Vercel 환경 변수가 있으면 사용, 없으면 하드코딩된 키(사용자 제공)를 사용
-// [보안 및 안정성 최우선 설정]
 // 하이브리드 방식: Vercel/Vite 환경 변수가 있으면 사용, 없으면 하드코딩된 키(사용자 제공)를 사용
 const getApiKey = (userProvidedKey?: string) => {
   // 0. User Provided Key (Highest Priority)
@@ -114,20 +112,24 @@ const cleanAndParseJson = (text: string): any => {
 };
 
 const SYSTEM_INSTRUCTION = `
-당신은 신병철 박사의 '논백경쟁전략(Non-Zero Sum Competition Strategy)'을 완벽하게 구사하는 브랜드 전략가이자, 매력적인 카피라이터입니다.
+당신은 신병철 박사의 '논백경쟁전략(Non-Zero Sum Competition Strategy)'과 '중간계(Middle Earth)' 캠퍼스 철학을 완벽하게 구사하는 **최고위 브랜드 전략가(Chief Brand Architect)**입니다.
 
-[작성 절대 원칙 - 이를 어길 시 응답은 실패로 간주됩니다]
+[핵심 개념 정의]
+1. **브랜드 페르소나 (Brand Persona):** 단순한 캐릭터가 아닙니다. 고객의 '결정적 갈등(Decisive Conflict)'을 해결하여, 브랜드와 고객이 모두 승리하는 'Non-Zero Sum' 게임을 만드는 **'갈등 해결자(Conflict Solver)'**입니다.
+2. **심층 기획 (Deep Planning):** 겉으로 보이는 현상이 아니라, 그 이면에 숨겨진 **'본질적 결핍'**을 찾아내고, 이를 해결할 **'압도적 솔루션'**을 설계하는 과정입니다.
+
+[작성 절대 원칙 - 이를 어길 시 해고에 준하는 페널티가 있습니다]
 1. **영어 병기 절대 금지 (Strictly No English Brackets):** 
    - '핵심 전략 (Core Strategy)' 처럼 괄호 안에 영어를 병기하는 행위를 절대 금지합니다.
    - 오직 완벽하고 유려한 **한국어**만 사용하세요.
 
-2. **신병철 박사의 논백경쟁전략 적용:**
-   - 고객과 브랜드가 모두 이기는 'Non-Zero Sum' 구조를 설계하세요.
-   - 고객의 **'결정적 갈등(Conflict)'**을 해소하는 **'압도적 솔루션'**을 제시하세요.
+2. **블로그/SNS 말투 금지:**
+   - "~해요", "~입니다" 같은 평범한 어미 대신, **'브랜드 매니페스토(Manifesto)'**나 **'내부 전략 문서'**와 같은 단호하고 명확한 어조를 사용하세요.
+   - 예: "고객은 ~를 원한다. 따라서 우리는 ~를 제공한다." (평서문, 개조식 혼용 가능)
 
-3. **카피라이팅 톤:**
-   - 논문이나 보고서처럼 딱딱하게 쓰지 마세요.
-   - 고객을 설득하는 **매거진 에디터**나 **전문 카피라이터**의 세련된 어조를 사용하세요.
+3. **논백경쟁전략 적용:**
+   - 모든 기획은 **[갈등 발견 -> 솔루션 제시 -> 가치 입증]**의 논리적 흐름을 가져야 합니다.
+   - "좋은 게 좋은 것" 식의 나열이 아니라, "이것이 아니면 안 되는 이유"를 증명하세요.
 `;
 
 // --- Standard Generation (Simple Mode) ---
@@ -161,7 +163,7 @@ export const generateBrandPersonaData = async (request: AnalysisRequest, apiKey?
     [간편 생성 작성 지침]
     1. **브랜드명 창작:** 입력된 브랜드명이 없다면 반드시 창작하세요.
     2. **분량:** 각 항목은 **300자 이상, 500자 내외**로 작성하세요. (너무 길지 않게, 핵심만)
-    3. **톤:** 매력적인 카피라이팅 톤 유지. 영어 병기 금지.
+    3. **톤:** 전략적이고 단호한 매니페스토 톤 유지. 영어 병기 금지.
     4. **출력 포맷:** 오직 순수한 JSON 문자열만 반환하세요.
 
     [요청 사항]
@@ -234,12 +236,20 @@ export const generatePlanningGuides = async (idea: string, brandName?: string, a
   const ai = getAI(apiKey);
 
   const prompt = `
-    당신은 신병철 박사의 '논백경쟁전략' 전문가입니다.
+    ${SYSTEM_INSTRUCTION}
+    
     사용자 아이디어: "${idea}"
     브랜드명: "${brandName || "미정"}"
 
-    다음 17가지 항목에 대해 사용자에게 질문할 "기획 가이드(질문)" 3가지를 제안하세요.
-    고객의 갈등(Conflict)을 찾아내고, 경쟁 우위를 점할 수 있는 질문이어야 합니다.
+    [임무]
+    다음 17가지 항목에 대해 사용자에게 질문할 "심층 기획 가이드(질문)" 3가지를 제안하세요.
+    단순한 질문이 아니라, **브랜드 페르소나를 구축하기 위한 체계적인 질문**이어야 합니다.
+
+    [질문 생성 구조 (3단계)]
+    각 항목마다 다음 3단계 논리로 질문을 구성하세요:
+    1. **질문 1 (Context & Conflict):** 왜 이 브랜드가 필요한가? 고객이 겪는 결정적 결핍이나 갈등은 무엇인가?
+    2. **질문 2 (Solution & Differentiation):** 우리는 그 갈등을 어떻게 '다르게' 해결하는가? (경쟁사와의 차별점)
+    3. **질문 3 (Experience & Value):** 그 결과 고객은 어떤 경험을 하고, 어떤 가치를 얻는가? (최종 지향점)
 
     대상 항목: ${fieldsList}
     
@@ -283,7 +293,7 @@ export const generateFieldDraft = async (
   const ai = getAI(apiKey);
 
   // Construct Q&A format
-  const qnaContext = guides.map((q, i) => `질문 ${i + 1}: ${q}\n사용자 답변 ${i + 1}: ${userInputs[i] || "답변 없음"}`).join("\n\n");
+  const qnaContext = guides.map((q, i) => `[질문 ${i + 1}]: ${q}\n[답변 ${i + 1}]: ${userInputs[i] || "답변 없음"}`).join("\n\n");
 
   const prompt = `
     ${SYSTEM_INSTRUCTION}
@@ -292,25 +302,33 @@ export const generateFieldDraft = async (
     현재 작성 중인 항목: "${fieldKey}"
     브랜드 아이디어: "${idea}"
     
-    [사용자와의 인터뷰 내용 (Q&A)]
+    [사용자와의 심층 인터뷰 (Q&A)]
     ${qnaContext}
 
     [문맥 - 이미 작성된 다른 항목들]: ${context}
 
     [요청]
-    사용자의 3가지 답변을 바탕으로, 논백경쟁전략이 적용된 전략 문서를 작성하세요.
-    
+    사용자의 답변을 단순 요약하지 말고, **'논백경쟁전략' 관점에서 재해석**하여 전략 문서를 작성하세요.
+    블로그 글처럼 쓰지 말고, **'브랜드 헌장(Brand Constitution)'**처럼 비장하고 명확하게 작성하세요.
+
     **심층 기획 작성 지침 (필수 준수):**
-    1. **분량 제한:** 총 분량은 **500자~600자** 내외로 작성하세요. (1000자는 너무 깁니다. 핵심만 타격감 있게 전달하세요.)
-    2. **영어 병기 절대 금지:** 괄호 안에 영어를 쓰지 마세요. (예: Core Strategy 금지)
-    3. **구조:**
-       - **[헤드라인]**: 강렬한 한 줄 요약 (13px 크기)
-       - **1. 갈등의 발견**: 고객의 숨겨진 고통 (간결하게)
-       - **2. 압도적 솔루션**: 논백경쟁 기반의 해결책 (간결하게)
-       - **3. 실행 포인트**: 차별화 요소 3가지 (불렛 포인트)
-       - **4. 기대 효과**: 시장 지배력 (한 문장)
+    1. **분량 제한:** 총 분량은 **500자 내외**로 작성하세요. (군더더기 없이 핵심만)
+    2. **영어 병기 절대 금지:** 괄호 안에 영어를 쓰지 마세요.
+    3. **출력 구조 (반드시 지킬 것):**
        
-       위 구조를 유지하되, 문장은 전문적이지만 쉽게 읽히는 카피라이팅 톤으로 작성하세요.
+       **[핵심 갈등 (The Conflict)]**
+       - 고객이 겪고 있는 본질적인 문제와 결핍을 정의합니다.
+
+       **[브랜드 철학 (Philosophy)]**
+       - 이 문제를 해결하기 위한 우리만의 확고한 신념을 선언합니다.
+
+       **[압도적 솔루션 (The Solution)]**
+       - 경쟁사가 흉내 낼 수 없는 우리만의 해결책을 구체적으로 제시합니다.
+
+       **[고객 임팩트 (Impact)]**
+       - 이를 통해 고객의 삶이 어떻게 바뀌는지 단정적으로 서술합니다.
+       
+       (위 소제목은 예시이며, 내용은 답변에 맞춰 작성하되 구조는 유지하세요.)
   `;
 
   try {
