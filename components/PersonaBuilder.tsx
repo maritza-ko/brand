@@ -272,8 +272,25 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
                             </span>
                           </div>
                         ) : state?.draft ? (
-                          <div className="prose prose-sm max-w-none text-slate-700 leading-relaxed whitespace-pre-wrap animate-fade-in">
-                            {state.draft}
+                          <div className="prose prose-sm max-w-none text-slate-700 leading-relaxed animate-fade-in">
+                            {state.draft.split('\n').map((line, i) => {
+                              // Header Parsing (###, ##, #)
+                              if (line.trim().startsWith('### ')) {
+                                return <h3 key={i} className="text-lg font-bold text-indigo-800 mt-5 mb-2 block">{line.replace('### ', '').trim()}</h3>;
+                              }
+                              if (line.trim().startsWith('## ')) {
+                                return <h3 key={i} className="text-lg font-bold text-indigo-800 mt-5 mb-2 block">{line.replace('## ', '').trim()}</h3>;
+                              }
+                              if (line.trim().startsWith('# ')) {
+                                return <h3 key={i} className="text-lg font-bold text-indigo-800 mt-5 mb-2 block">{line.replace('# ', '').trim()}</h3>;
+                              }
+                              // Empty lines
+                              if (line.trim() === '') {
+                                return <div key={i} className="h-2" />;
+                              }
+                              // Normal text
+                              return <p key={i} className="mb-1 text-slate-600">{line}</p>;
+                            })}
                           </div>
                         ) : (
                           <div className="h-full flex items-center justify-center text-slate-400 text-sm min-h-[300px] text-center px-4">
