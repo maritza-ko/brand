@@ -183,7 +183,16 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
       "symbolicBenefit": "...",
       "keywords": ["...", ...],
       "customerManagement": "...",
-      "pomelli": { ... }
+      "pomelli": {
+        "businessOverview": "...",
+        "tagline": "...",
+        "brandArchetype": "...",
+        "toneOfVoice": ["...", ...],
+        "brandAesthetic": ["...", ...],
+        "typography": "...",
+        "colors": [{"name": "...", "hex": "...", "description": "..." }, ...],
+        "brandValues": [{"title": "...", "description": "..." }, ...]
+      }
     }
   `;
 
