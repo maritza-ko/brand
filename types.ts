@@ -54,7 +54,7 @@ export interface FieldGuide {
 
 export interface FieldState {
   draft: string; // Current AI generated content
-  userInputs: string[]; // User's answers to the 3 guides (Array of 3 strings)
+  userInput: string; // User's answer to the guides
   history: string[]; // Previous drafts
   isFinalized: boolean;
   isLoading: boolean;
@@ -64,6 +64,7 @@ export type BuilderState = Record<PersonaFieldKey, FieldState>;
 
 export const FIELD_METADATA: { key: PersonaFieldKey; label: string; category: string }[] = [
   { key: 'brandName', label: '브랜드명', category: 'Identity & Visual' },
+  // Image generation is handled separately, but conceptually part of identity
   { key: 'philosophy', label: '브랜드 철학', category: 'Identity & Visual' },
   { key: 'slogan', label: '슬로건', category: 'Identity & Visual' },
   { key: 'brandMent', label: '브랜드 멘트 (Tone & Manner)', category: 'Identity & Visual' },

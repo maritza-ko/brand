@@ -5,6 +5,7 @@ import {
   BuilderState, 
   PersonaFieldKey, 
   FIELD_METADATA, 
+  FieldGuide,
   FieldState
 } from '../types';
 import { generateFieldDraft } from '../services/geminiService';
@@ -19,10 +20,7 @@ interface PersonaBuilderProps {
 const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBrandName, onComplete }) => {
   const [builderState, setBuilderState] = useState<BuilderState>({} as BuilderState);
   const [expandedField, setExpandedField] = useState<PersonaFieldKey | null>(null);
-  
-  // Array of strings for 3 answers
-  const [currentUserInputs, setCurrentUserInputs] = useState<string[]>(["", "", ""]);
-  
+  const [userInput, setUserInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   
   // Refs to scroll items into view
@@ -43,7 +41,7 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
 
         initial[field.key] = {
           draft: initialDraft,
-          userInputs: field.key === 'brandName' && initialBrandName ? [`확정된 이름: ${initialBrandName}`, "", ""] : ["", "", ""],
+          userInput: field.key === 'brandName' && initialBrandName ? `확정된 이름: ${initialBrandName}` : "",
           history: [],
           isFinalized: initialFinalized,
           isLoading: false
@@ -60,19 +58,11 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
     }
   }, []);
 
-  // Auto-scroll and load inputs when expandedField changes
+  // Auto-scroll when expandedField changes
   useEffect(() => {
     if (expandedField) {
         const index = FIELD_METADATA.findIndex(f => f.key === expandedField);
         if (index !== -1 && itemRefs.current[index]) {
-            // Load saved inputs for this field
-            const savedInputs = builderState[expandedField]?.userInputs;
-            if (savedInputs && Array.isArray(savedInputs) && savedInputs.length === 3) {
-              setCurrentUserInputs(savedInputs);
-            } else {
-              setCurrentUserInputs(["", "", ""]);
-            }
-
             // Delay slightly to allow accordion animation to start
             setTimeout(() => {
                 itemRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -86,22 +76,16 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
       setExpandedField(null);
     } else {
       setExpandedField(key);
+      setUserInput(builderState[key]?.userInput || "");
     }
   };
 
-  const handleInputChange = (index: number, value: string) => {
-    const newInputs = [...currentUserInputs];
-    newInputs[index] = value;
-    setCurrentUserInputs(newInputs);
-  };
-
   const handleGenerateDraft = async (key: PersonaFieldKey) => {
-    // Check if at least one input has content
-    if (currentUserInputs.every(input => !input.trim())) return;
+    if (!userInput.trim()) return;
 
     setBuilderState(prev => ({
       ...prev,
-      [key]: { ...prev[key], isLoading: true, userInputs: currentUserInputs }
+      [key]: { ...prev[key], isLoading: true, userInput: userInput }
     }));
     setIsGenerating(true);
 
@@ -118,18 +102,13 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
         .map(([k, v]) => `${k}: ${v.draft}`)
         .join("\n");
 
-      // Pass the guides for this key so we can map Question -> Answer
-      const currentGuides = guides[key] || ["가이드 질문 1", "가이드 질문 2", "가이드 질문 3"];
-
-      // Call service with array inputs
-      const draft = await generateFieldDraft(key, idea, currentUserInputs, currentGuides, context, currentBrandName);
+      const draft = await generateFieldDraft(key, idea, userInput, context, currentBrandName);
 
       setBuilderState(prev => ({
         ...prev,
         [key]: { 
           ...prev[key], 
           draft: draft, 
-          userInputs: currentUserInputs, 
           history: [...prev[key].history, draft],
           isLoading: false,
           isFinalized: true 
@@ -140,9 +119,11 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
       const currentIndex = FIELD_METADATA.findIndex(f => f.key === key);
       if (currentIndex !== -1 && currentIndex < FIELD_METADATA.length - 1) {
         const nextField = FIELD_METADATA[currentIndex + 1];
+        
         setTimeout(() => {
           setExpandedField(nextField.key);
-        }, 800); 
+          setUserInput(builderState[nextField.key]?.userInput || "");
+        }, 600); 
       }
 
     } catch (e) {
@@ -184,13 +165,13 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
           {FIELD_METADATA.map((field, index) => {
             const state = builderState[field.key];
             const isOpen = expandedField === field.key;
-            const fieldGuides = guides[field.key] || ["기획 가이드 1", "기획 가이드 2", "기획 가이드 3"];
+            const fieldGuides = guides[field.key] || ["가이드를 불러오는 중..."];
             const isDone = state?.isFinalized;
 
             return (
               <div 
                 key={field.key} 
-                ref={el => { itemRefs.current[index] = el; }}
+                ref={el => itemRefs.current[index] = el}
                 className={`bg-white rounded-2xl border transition-all duration-300 overflow-hidden ${isOpen ? 'border-indigo-500 shadow-md ring-1 ring-indigo-100' : 'border-slate-200 hover:border-indigo-300'}`}
               >
                 <button 
@@ -213,46 +194,48 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
                   <div className="px-6 pb-6 animate-fade-in">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       
-                      {/* Guide & Input Section - 3 Separate Inputs */}
+                      {/* Guide & Input Section */}
                       <div className="space-y-4 border-r md:border-r-0 border-slate-100 md:pr-4">
                         <div className="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-                           <h4 className="flex items-center gap-2 text-sm font-bold text-indigo-800 mb-1">
+                          <h4 className="flex items-center gap-2 text-sm font-bold text-indigo-800 mb-3">
                             <Icons.Lightbulb className="w-4 h-4" />
                             상세 기획 가이드
                           </h4>
-                          <p className="text-xs text-indigo-600 mb-3">질문에 대한 답변을 각각 입력해주세요. AI가 이를 종합하여 전략을 완성합니다.</p>
+                          <ul className="space-y-2">
+                            {fieldGuides.map((guide, i) => (
+                              <li key={i} className="text-sm text-indigo-700 leading-relaxed flex items-start gap-2">
+                                <span className="block mt-1.5 w-1 h-1 rounded-full bg-indigo-400 shrink-0"></span>
+                                {guide}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
 
-                        <div className="space-y-6">
-                          {fieldGuides.map((guide, i) => (
-                            <div key={i}>
-                              <label className="block text-sm font-bold text-slate-700 mb-2 leading-snug">
-                                <span className="inline-block w-5 h-5 bg-indigo-100 text-indigo-700 rounded-full text-xs text-center leading-5 mr-2">{i + 1}</span>
-                                {guide}
-                              </label>
-                              <textarea 
-                                value={currentUserInputs[i]}
-                                onChange={(e) => handleInputChange(i, e.target.value)}
-                                placeholder="답변을 입력하세요."
-                                className="w-full h-16 p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none text-slate-700 text-sm leading-relaxed bg-slate-50/50"
-                                disabled={state?.isLoading || state?.isFinalized}
-                              />
-                            </div>
-                          ))}
+                        <div>
+                          <label className="block text-sm font-bold text-slate-700 mb-2">
+                            나의 기획 의도 입력
+                          </label>
+                          <textarea 
+                            value={userInput}
+                            onChange={(e) => setUserInput(e.target.value)}
+                            placeholder="위 가이드를 참고하여 핵심 아이디어를 입력해주세요."
+                            className="w-full h-32 p-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none text-slate-700 text-sm leading-relaxed"
+                            disabled={state?.isLoading || state?.isFinalized}
+                          />
                           
                           {!state?.isFinalized ? (
                              <button 
                                onClick={() => handleGenerateDraft(field.key)}
-                               disabled={currentUserInputs.every(s => !s.trim()) || state?.isLoading}
-                               className="mt-4 w-full py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 transition-colors flex items-center justify-center gap-2 shadow-md"
+                               disabled={!userInput.trim() || state?.isLoading}
+                               className="mt-3 w-full py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 transition-colors flex items-center justify-center gap-2"
                              >
-                               {state?.isLoading ? '전략 통합 및 생성 중...' : '답변 제출 및 초안 생성'}
+                               {state?.isLoading ? '생성 중...' : 'AI 초안 생성하기'}
                                {!state?.isLoading && <Icons.Sparkles className="w-4 h-4" />}
                              </button>
                           ) : (
                             <button 
                                onClick={() => handleRefine(field.key)}
-                               className="mt-4 w-full py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors shadow-sm"
+                               className="mt-3 w-full py-3 bg-white border border-slate-200 text-slate-600 rounded-xl font-bold text-sm hover:bg-slate-50 transition-colors"
                              >
                                수정하기 (다시 생성)
                              </button>
@@ -261,22 +244,20 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
                       </div>
 
                       {/* Result Section */}
-                      <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 relative h-fit sticky top-24">
+                      <div className="bg-slate-50 rounded-xl border border-slate-200 p-5 relative">
                         <h4 className="text-sm font-bold text-slate-500 mb-3 uppercase tracking-wide">AI Draft Result</h4>
                         {state?.isLoading ? (
-                          <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3 min-h-[300px]">
+                          <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3 min-h-[200px]">
                              <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-                             <span className="text-sm animate-pulse text-center px-4">
-                               답변을 분석하여<br/>최적의 페르소나를 생성하고 있습니다...
-                             </span>
+                             <span className="text-sm animate-pulse">전문적인 내용을 작성하고 있습니다...</span>
                           </div>
                         ) : state?.draft ? (
                           <div className="prose prose-sm max-w-none text-slate-700 leading-relaxed whitespace-pre-wrap animate-fade-in">
                             {state.draft}
                           </div>
                         ) : (
-                          <div className="h-full flex items-center justify-center text-slate-400 text-sm min-h-[300px] text-center px-4">
-                            가이드 질문에 답변을 입력하면<br/>AI가 전문적인 전략 문서를 완성해드립니다.
+                          <div className="h-full flex items-center justify-center text-slate-400 text-sm min-h-[200px]">
+                            왼쪽에서 내용을 입력하고 생성 버튼을 눌러주세요.
                           </div>
                         )}
                         {state?.isFinalized && (
@@ -296,7 +277,7 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 p-4 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+      <div className="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 p-4 z-30">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
            <div className="text-sm text-slate-500">
              <span className="font-bold text-indigo-600">{completedCount}</span> / {totalCount} 항목 작성 완료
