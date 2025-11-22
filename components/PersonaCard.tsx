@@ -12,11 +12,9 @@ interface PersonaCardProps {
 
 const PersonaCard: React.FC<PersonaCardProps> = ({ title, content, icon: Icon, colorClass, fullWidth = false }) => {
   
-  // Custom parser to render styled text from raw string
   const renderStyledContent = (text: string) => {
     if (!text) return null;
 
-    // Split text into lines
     const lines = text.split('\n');
     const elements: React.ReactNode[] = [];
     
@@ -51,19 +49,20 @@ const PersonaCard: React.FC<PersonaCardProps> = ({ title, content, icon: Icon, c
         return;
       }
 
-      // Check for Headers (###)
-      if (trimmed.startsWith('###')) {
+      // Check for Headers (### or **[...]) - Forced to 13px
+      if (trimmed.startsWith('###') || trimmed.startsWith('**[')) {
         flushList();
+        const headerText = trimmed.replace(/^###\s*/, '').replace(/^\*\*\[/, '').replace(/\]\*\*$/, '');
         elements.push(
-          <h4 key={`h-${index}`} className="text-slate-800 font-bold text-lg mt-4 mb-2 flex items-center gap-2">
+          <h4 key={`h-${index}`} className="text-slate-800 font-bold text-[13px] mt-4 mb-2 flex items-center gap-2 uppercase tracking-wide">
              <span className={`w-1.5 h-4 rounded-full ${colorClass.replace('bg-', 'bg-')}`}></span>
-             {trimmed.replace(/^###\s*/, '')}
+             {headerText}
           </h4>
         );
         return;
       }
 
-      // Check for Bullets (- or *)
+      // Check for Bullets
       if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('• ')) {
         const content = trimmed.replace(/^[-*•]\s*/, '');
         currentList.push(
@@ -75,24 +74,6 @@ const PersonaCard: React.FC<PersonaCardProps> = ({ title, content, icon: Icon, c
         return;
       }
 
-      // Check for Numbered Lists (1. )
-      if (/^\d+\.\s/.test(trimmed)) {
-         const number = trimmed.match(/^\d+/)?.[0] || '•';
-         const content = trimmed.replace(/^\d+\.\s*/, '');
-         // Treat numbered list similar to bullet for cleaner visual, or wrap differently
-         // Here we use a distinct style
-         flushList();
-         elements.push(
-            <div key={`num-${index}`} className="flex items-start gap-3 mb-3 text-sm md:text-base">
-               <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-bold flex items-center justify-center border border-slate-200 mt-0.5">
-                 {number}
-               </span>
-               <p className="text-slate-700 leading-relaxed pt-0.5">{parseBold(content)}</p>
-            </div>
-         );
-         return;
-      }
-
       // Standard Paragraph
       flushList();
       elements.push(
@@ -102,7 +83,7 @@ const PersonaCard: React.FC<PersonaCardProps> = ({ title, content, icon: Icon, c
       );
     });
 
-    flushList(); // Flush any remaining list items
+    flushList();
     return elements;
   };
 

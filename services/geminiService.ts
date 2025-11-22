@@ -3,15 +3,12 @@ import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { BrandPersona, AnalysisRequest, CustomInputs, PersonaFieldKey, FieldGuide, FIELD_METADATA, BuilderState } from "../types";
 
 // [보안 및 안정성 최우선 설정]
-// 1순위: Vercel 환경 변수 (설정되어 있다면)
-// 2순위: 하드코딩된 백업 키 (설정 실패 시 즉시 작동 보장)
+// 하이브리드 방식: Vercel 환경 변수가 있으면 사용, 없으면 하드코딩된 키(사용자 제공)를 사용
 const apiKey = process.env.REACT_APP_GEMINI_API_KEY || "AIzaSyAA1mo8-okhJFyAb7muzyeIZsel0x7vSs0";
 
-// API 클라이언트 초기화
 const ai = new GoogleGenAI({ apiKey: apiKey });
 
-// --- Global Safety Settings (Relaxed to prevent false positives) ---
-// 텍스트 생성 시 불필요한 차단을 막기 위해 안전 기준을 완화합니다.
+// --- Global Safety Settings ---
 const SAFETY_SETTINGS = [
   { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
   { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH },
@@ -19,7 +16,28 @@ const SAFETY_SETTINGS = [
   { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH }
 ];
 
-// --- Fallback Guides (Prevents app crash if AI fails) ---
+// --- Defaults & Constants ---
+
+const DEFAULT_POMELLI = {
+  businessOverview: "데이터를 분석하여 비즈니스 DNA를 도출하고 있습니다.",
+  tagline: "Your Strategic Tagline Here",
+  brandArchetype: "The Creator",
+  toneOfVoice: ["Professional", "Trustworthy"],
+  brandAesthetic: ["Clean", "Modern"],
+  typography: "Sans-serif / Pretendard",
+  colors: [
+    { name: "Primary Blue", hex: "#4F46E5", description: "Trust and Professionalism" },
+    { name: "Clean White", hex: "#FFFFFF", description: "Clarity" },
+    { name: "Slate Grey", hex: "#64748B", description: "Balance" },
+    { name: "Soft Indigo", hex: "#E0E7FF", description: "Creativity" },
+    { name: "Deep Navy", hex: "#1E293B", description: "Depth" }
+  ],
+  brandValues: [
+    { title: "Innovation", description: "Driving change through new ideas." },
+    { title: "Integrity", description: "Building trust with honesty." }
+  ]
+};
+
 const DEFAULT_GUIDES: Record<string, string[]> = {
   brandName: ["브랜드의 핵심 가치를 한 단어로 표현한다면?", "기억하기 쉬운 짧은 이름인가요, 의미가 담긴 이름인가요?", "어떤 언어(한글, 영어, 라틴어 등)를 선호하시나요?"],
   philosophy: ["이 브랜드를 시작하게 된 결정적 계기는 무엇인가요?", "고객에게 절대 타협하지 않을 한 가지 약속은 무엇인가요?", "세상을 어떻게 긍정적으로 바꾸고 싶나요?"],
@@ -43,65 +61,54 @@ const DEFAULT_GUIDES: Record<string, string[]> = {
 // --- Helper for robust JSON extraction ---
 const cleanAndParseJson = (text: string): any => {
   try {
-    // 1. Remove Markdown code blocks strictly
+    // 1. Remove Markdown Code Blocks
     let cleanText = text.replace(/```json\s*([\s\S]*?)\s*```/gi, '$1');
     cleanText = cleanText.replace(/```\s*([\s\S]*?)\s*```/gi, '$1');
 
-    // 2. Find the valid JSON object wrapper
+    // 2. Find the absolute first '{' and last '}'
     const firstOpen = cleanText.indexOf('{');
     const lastClose = cleanText.lastIndexOf('}');
     
     if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
       cleanText = cleanText.substring(firstOpen, lastClose + 1);
+    } else {
+      throw new Error("No valid JSON object found in response");
     }
-    
+
+    // 3. Attempt parsing
     return JSON.parse(cleanText);
   } catch (e) {
     console.error("JSON Extraction Failed. Raw text:", text);
-    throw new Error("AI 응답 형식이 올바르지 않습니다. 다시 시도해주세요.");
+    // Return null so the caller can handle default fallback
+    return null; 
   }
 };
 
-// --- High Quality Reference Example (The Gold Standard) ---
-const EXCELLENT_EXAMPLE = `
-[Tone & Manner Reference: 더 벙커 (The Bunker)]
-1. 브랜드철학: "게이머의 1초를 지배하다". 우리는 단순한 PC방이 아닌 'e스포츠 아레나'를 지향합니다. 승부를 결정짓는 하이엔드 스펙으로 프로게이머급 환경을 제공합니다.
-2. 핵심기술: "G-Sync Ultimate Zone". 전 좌석 RTX 4080, 360Hz 모니터, 자체 개발 '아이스 쿨링 시트'. 그리고 매장 내 미세먼지와 담배 냄새를 0으로 만드는 '퓨어 에어 챔버' 시스템.
-3. 핵심전략: "Shop-in-Shop Gastronomy". PC 이용료 외에 자체 F&B 브랜드 '벙커 키친'을 통해 '맛집보다 맛있는 PC방'을 구축, 객단가를 극대화하는 전략.
-4. 기능적 혜택(고통해결): '어둡고 칙칙하고 냄새나는 지하'라는 PC방의 고정관념 타파. 지상 채광 설계와 호텔급 공조 시스템으로 '여자친구와 함께 오고 싶은 쾌적한 데이트 코스'를 구현했습니다.
-5. 고객문화창조: 1단계(환경 혁신: 냄새나지 않는 쾌적함) -> 2단계(장비 혁신: 집보다 좋은 최고급 사양) -> 3단계(커뮤니티: 동네 리그가 열리는 e스포츠 성지).
-`;
-
 const SYSTEM_INSTRUCTION = `
-당신은 신병철 박사의 '논백경쟁전략(Non-Zero Sum Competition Strategy)'을 완벽하게 구사하는 세계 최고의 브랜드 전략가이자, 고객의 마음을 사로잡는 매력적인 카피라이터입니다.
+당신은 신병철 박사의 '논백경쟁전략(Non-Zero Sum Competition Strategy)'을 완벽하게 구사하는 브랜드 전략가이자, 매력적인 카피라이터입니다.
 
-[작성 절대 원칙 - 위반 시 시스템 오류 간주]
-1. **영어 병기 절대 금지 (Zero Tolerance):** 
-   - '핵심 전략 (Core Strategy)' 처럼 괄호 안에 영어를 쓰는 행위를 절대 금지합니다.
-   - 문장 중간에 영단어를 섞어 쓰지 마세요. (예: 'Core Value는...' -> '핵심 가치는...')
+[작성 절대 원칙 - 이를 어길 시 응답은 실패로 간주됩니다]
+1. **영어 병기 절대 금지 (Strictly No English Brackets):** 
+   - '핵심 전략 (Core Strategy)' 처럼 괄호 안에 영어를 병기하는 행위를 절대 금지합니다.
    - 오직 완벽하고 유려한 **한국어**만 사용하세요.
 
 2. **신병철 박사의 논백경쟁전략 적용:**
-   - 단순한 '가격 경쟁(Zero-Sum)'이 아니라, 고객과 브랜드가 모두 이기는 'Non-Zero Sum' 구조를 설계하세요.
-   - 고객이 겪는 **'결정적 갈등(Conflict)'**과 **'트레이드오프(Trade-off)'**를 명확히 지적하고, 이를 해소하는 우리만의 **'압도적 솔루션'**을 제시하세요.
+   - 고객과 브랜드가 모두 이기는 'Non-Zero Sum' 구조를 설계하세요.
+   - 고객의 **'결정적 갈등(Conflict)'**을 해소하는 **'압도적 솔루션'**을 제시하세요.
 
-3. **카피라이팅 톤 (매거진/제안서 스타일):**
+3. **카피라이팅 톤:**
    - 논문이나 보고서처럼 딱딱하게 쓰지 마세요.
-   - "합니다, 습니다"체와 "해요"체를 적절히 섞어, 세련되고 설득력 있는 문장으로 작성하세요.
-   - 독자가 읽는 순간 "이거다!" 싶게 만드는 강렬한 흡입력이 있어야 합니다.
-
-4. **구체성:** 추상적인 형용사("좋은", "최고의") 대신, 구체적인 숫자, 고유 명사, 스펙("RTX 4090", "175도 튀김")을 사용하세요.
+   - 고객을 설득하는 **매거진 에디터**나 **전문 카피라이터**의 세련된 어조를 사용하세요.
 `;
 
 // --- Standard Generation (Simple Mode) ---
 export const generateBrandPersonaData = async (request: AnalysisRequest): Promise<BrandPersona> => {
   const { idea, url, brandName, customInputs } = request;
 
-  // 브랜드명 입력 여부 확인 및 처리
   const hasBrandName = brandName && brandName.trim().length > 0;
   const brandNameInstruction = hasBrandName 
     ? `[확정된 브랜드명]: "${brandName}"`
-    : `[확정된 브랜드명]: 없음 (공란). \n[중요]: 사용자가 브랜드명을 정하지 않았습니다. 당신이 이 사업 아이디어와 컨셉에 가장 잘 어울리고 기억하기 쉬운 **브랜드 네이밍을 직접 창작**하여 'brandName' 필드에 입력하세요. 절대로 '미정'이나 'Undecided'라고 적지 마세요.`;
+    : `[확정된 브랜드명]: 없음 (공란). \n[중요]: 당신이 이 사업 아이디어에 가장 잘 어울리는 **브랜드 네이밍을 직접 창작**하여 'brandName' 필드에 입력하세요. 절대로 '미정'이라고 적지 마세요.`;
 
   let customInstructions = "";
   if (customInputs) {
@@ -115,52 +122,42 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
   const prompt = `
     ${SYSTEM_INSTRUCTION}
 
-    사용자가 입력한 아이디어의 업종을 정확히 파악하고, 완벽한 브랜드 페르소나 JSON을 완성하세요.
-    
-    [Reference Example]
-    ${EXCELLENT_EXAMPLE}
-
     [입력 정보]
     - 브랜드/사업 아이디어: ${idea}
     - 참고 URL: ${url || "없음"}
     ${brandNameInstruction}
-
     ${customInstructions ? `[사용자 추가 가이드]\n${customInstructions}` : ""}
 
     [간편 생성 작성 지침]
-    1. **브랜드명 창작:** 입력된 브랜드명이 없다면, 당신이 최고의 네이밍을 지어야 합니다. '미정' 금지.
-    2. **분량:** 각 텍스트 항목은 **300자 이상, 500자 내외**로 작성하여 충분한 설명력을 갖추세요.
-    3. **톤:** 딱딱한 설명문이 아니라, 고객을 설득하는 '전략 제안서' 톤으로 작성하세요. 영어 병기 금지.
+    1. **브랜드명 창작:** 입력된 브랜드명이 없다면 반드시 창작하세요.
+    2. **분량:** 각 항목은 **300자 이상, 500자 내외**로 작성하세요. (너무 길지 않게, 핵심만)
+    3. **톤:** 매력적인 카피라이팅 톤 유지. 영어 병기 금지.
+    4. **출력 포맷:** 오직 순수한 JSON 문자열만 반환하세요.
 
     [요청 사항]
-    JSON 객체로 반환하세요.
-    
-    [JSON 필드 구조 (총 17개 항목 + Pomelli)]
-    1. brandName (입력값이 없으면 창작된 이름 필수)
-    2. brandNameSuggestions (추가 후보 3개)
-    3. philosophy
-    4. slogan
-    5. coreTechnology
-    6. coreStrategy
-    7. brandMent
-    8. targetAudience
-    9. genZValue
-    10. customerCulture
-    11. comparativeAdvantage
-    12. qualityLevel
-    13. priceLevel
-    14. functionalBenefit
-    15. experientialBenefit
-    16. symbolicBenefit
-    17. keywords (Array)
-    18. customerManagement
-    19. pomelli: {
-         businessOverview, tagline, brandArchetype, toneOfVoice[], brandAesthetic[], typography,
-         colors: [{ name, hex, description }] (최소 5가지 색상: Main, Secondary, Accent, Neutral 1, Neutral 2),
-         brandValues: [{ title, description }]
+    JSON 객체로 반환하세요. 필드는 총 17개 + Pomelli 입니다.
+    반드시 다음 필드 구조를 따르세요:
+    {
+      "brandName": "...",
+      "brandNameSuggestions": ["...", ...],
+      "philosophy": "...",
+      "slogan": "...",
+      "coreTechnology": "...",
+      "coreStrategy": "...",
+      "brandMent": "...",
+      "targetAudience": "...",
+      "genZValue": "...",
+      "customerCulture": "...",
+      "comparativeAdvantage": "...",
+      "qualityLevel": "...",
+      "priceLevel": "...",
+      "functionalBenefit": "...",
+      "experientialBenefit": "...",
+      "symbolicBenefit": "...",
+      "keywords": ["...", ...],
+      "customerManagement": "...",
+      "pomelli": { ... }
     }
-
-    반드시 JSON 포맷만 반환하세요.
   `;
 
   try {
@@ -173,9 +170,18 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
       }
     });
 
-    const text = response.text;
-    if (!text) throw new Error("No data returned");
-    return cleanAndParseJson(text) as BrandPersona;
+    const text = response.text || "";
+    let result = cleanAndParseJson(text);
+    
+    // Fallback for parsing failure or missing pomelli
+    if (!result) {
+        throw new Error("데이터 파싱에 실패했습니다.");
+    }
+    if (!result.pomelli) {
+        result.pomelli = DEFAULT_POMELLI;
+    }
+
+    return result as BrandPersona;
   } catch (error: any) {
     console.error("Error generating brand persona:", error);
     throw new Error(`생성 중 오류가 발생했습니다: ${error.message}`);
@@ -184,7 +190,6 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
 
 // --- Builder Mode Functions ---
 
-// 1. Generate Planning Guides
 export const generatePlanningGuides = async (idea: string, brandName?: string): Promise<Record<string, string[]>> => {
   const fieldsList = FIELD_METADATA.map(f => f.key).join(", ");
   
@@ -214,9 +219,9 @@ export const generatePlanningGuides = async (idea: string, brandName?: string): 
         safetySettings: SAFETY_SETTINGS
       }
     });
-    const text = response.text;
-    if (!text) throw new Error("No guides returned");
-    return cleanAndParseJson(text);
+    const text = response.text || "";
+    const parsed = cleanAndParseJson(text);
+    return parsed || DEFAULT_GUIDES;
   } catch (error: any) {
     console.warn("AI Guide Generation Failed, falling back to defaults:", error);
     return DEFAULT_GUIDES;
@@ -227,12 +232,16 @@ export const generatePlanningGuides = async (idea: string, brandName?: string): 
 export const generateFieldDraft = async (
   fieldKey: string, 
   idea: string, 
-  userInput: string, 
+  userInputs: string[], // Array input
+  guides: string[],     
   context: string,
   brandName?: string
 ): Promise<string> => {
 
   const finalBrandName = brandName || "미정";
+
+  // Construct Q&A format
+  const qnaContext = guides.map((q, i) => `질문 ${i+1}: ${q}\n사용자 답변 ${i+1}: ${userInputs[i] || "답변 없음"}`).join("\n\n");
 
   const prompt = `
     ${SYSTEM_INSTRUCTION}
@@ -241,26 +250,25 @@ export const generateFieldDraft = async (
     현재 작성 중인 항목: "${fieldKey}"
     브랜드 아이디어: "${idea}"
     
-    [사용자의 핵심 기획 의도]: "${userInput}"
-    [문맥 - 다른 항목들]: ${context}
+    [사용자와의 인터뷰 내용 (Q&A)]
+    ${qnaContext}
+
+    [문맥 - 이미 작성된 다른 항목들]: ${context}
 
     [요청]
-    위 내용을 바탕으로 항목(${fieldKey})을 전문가 수준으로 깊이 있게 작성하세요.
+    사용자의 3가지 답변을 바탕으로, 논백경쟁전략이 적용된 전략 문서를 작성하세요.
     
     **심층 기획 작성 지침 (필수 준수):**
-    1. **분량 확장:** 총 분량은 **800자 ~ 1000자 내외**로 아주 상세하게 작성하세요. 짧게 끝내지 마세요.
-    2. **영어 병기 절대 금지:** 괄호 안에 영어를 쓰지 마세요.
-    3. **논백경쟁전략 심층 적용:**
-       - **갈등의 발견:** 고객이 현재 겪고 있는 결정적 모순이나 갈등이 무엇인지 파헤치세요.
-       - **압도적 해결:** 우리 브랜드가 어떻게 그 갈등을 해결하여 '경쟁 불가능한 상태'를 만드는지 서술하세요.
-    4. **구조 (템플릿):** 
-       - **[헤드라인]**: 강렬한 한 줄 요약
-       - **1. 갈등의 발견 (Conflict)**: 고객의 숨겨진 고통
-       - **2. 압도적 솔루션 (Solution)**: 논백경쟁 기반의 해결책
-       - **3. 실행 디테일 (Action)**: 구체적인 스펙과 기술 3가지
-       - **4. 파급 효과 (Impact)**: 시장에서의 위상 변화
+    1. **분량 제한:** 총 분량은 **500자~600자** 내외로 작성하세요. (1000자는 너무 깁니다. 핵심만 타격감 있게 전달하세요.)
+    2. **영어 병기 절대 금지:** 괄호 안에 영어를 쓰지 마세요. (예: Core Strategy 금지)
+    3. **구조:**
+       - **[헤드라인]**: 강렬한 한 줄 요약 (13px 크기)
+       - **1. 갈등의 발견**: 고객의 숨겨진 고통 (간결하게)
+       - **2. 압도적 솔루션**: 논백경쟁 기반의 해결책 (간결하게)
+       - **3. 실행 포인트**: 차별화 요소 3가지 (불렛 포인트)
+       - **4. 기대 효과**: 시장 지배력 (한 문장)
        
-       위 구조를 지키되, 문체는 세련된 매거진 에디터 톤으로 작성하세요.
+       위 구조를 유지하되, 문장은 전문적이지만 쉽게 읽히는 카피라이팅 톤으로 작성하세요.
   `;
 
   try {
@@ -278,21 +286,17 @@ export const generateFieldDraft = async (
   }
 };
 
-// 3. Finalize and Assemble (Stitching instead of Regenerating)
+// 3. Finalize and Assemble
 export const finalizePersona = async (idea: string, builderState: BuilderState): Promise<BrandPersona> => {
   
-  // 1. Assemble the text fields directly from user-approved drafts
+  // Assemble drafts directly (No re-generation to avoid errors)
   const basePersona: any = {};
-  
-  // Map builder keys to persona keys
   FIELD_METADATA.forEach(field => {
       basePersona[field.key] = builderState[field.key]?.draft || "내용 없음";
   });
-  
-  // Add missing non-builder fields default
   basePersona.brandNameSuggestions = [];
 
-  // 2. Generate ONLY the Pomelli Visual DNA based on the assembled content
+  // Generate only Pomelli DNA
   const summary = Object.entries(basePersona)
       .map(([k, v]) => `${k}: ${v}`)
       .join("\n");
@@ -303,24 +307,23 @@ export const finalizePersona = async (idea: string, builderState: BuilderState):
     [완성된 브랜드 전략]:
     ${summary}
 
-    위 브랜드 전략을 바탕으로, 시각적 아이덴티티인 "Pomelli (Business DNA)" 섹션만 분석하여 생성하세요.
+    위 브랜드 전략을 바탕으로 "Pomelli (Business DNA)" 섹션만 생성하세요.
 
     [요청 사항]
-    아래 JSON 포맷에 맞춰 Pomelli 데이터만 반환하세요.
+    JSON 포맷으로 Pomelli 데이터만 반환하세요.
     색상(Colors)은 최소 5가지(Main, Secondary, Accent, Neutral 1, Neutral 2)를 포함해야 합니다.
-
-    {
-         "businessOverview": "한 줄 요약",
-         "tagline": "짧은 영문 태그라인",
-         "brandArchetype": "브랜드 원형",
-         "toneOfVoice": ["형용사1", "형용사2", ...],
-         "brandAesthetic": ["시각적 키워드1", "키워드2", ...],
-         "typography": "폰트 추천",
-         "colors": [{"name": "Main Color", "hex": "#...", "description": "..." }, ... (최소 5개)],
-         "brandValues": [{"title": "가치1", "description": "..." }, ...]
-    }
     
-    반드시 JSON 포맷만 반환하세요.
+    반드시 다음 JSON 구조를 따르세요:
+    {
+         "businessOverview": "...",
+         "tagline": "...",
+         "brandArchetype": "...",
+         "toneOfVoice": ["...", ...],
+         "brandAesthetic": ["...", ...],
+         "typography": "...",
+         "colors": [{"name": "...", "hex": "...", "description": "..." }, ...],
+         "brandValues": [{"title": "...", "description": "..." }, ...]
+    }
   `;
 
   try {
@@ -333,12 +336,9 @@ export const finalizePersona = async (idea: string, builderState: BuilderState):
       }
     });
     
-    const text = response.text;
-    if (!text) throw new Error("No data returned");
+    const text = response.text || "";
+    const pomelliData = cleanAndParseJson(text) || DEFAULT_POMELLI;
 
-    const pomelliData = cleanAndParseJson(text);
-
-    // 3. Merge and Return
     const finalPersona: BrandPersona = {
         ...basePersona,
         pomelli: pomelliData
@@ -347,7 +347,10 @@ export const finalizePersona = async (idea: string, builderState: BuilderState):
     return finalPersona;
   } catch (error: any) {
     console.error("Error finalizing persona:", error);
-    alert(`최종 생성 중 오류가 발생했습니다: ${error.message}`);
-    throw error;
+    // Return partial data with default Pomelli to prevent crash
+    return {
+        ...basePersona,
+        pomelli: DEFAULT_POMELLI
+    };
   }
 };

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrandPersona } from '../types';
+import { BrandPersona, PomelliData } from '../types';
 import { Icons } from './Icons';
 import PersonaCard from './PersonaCard';
 
@@ -10,6 +10,25 @@ interface ResultDashboardProps {
 }
 
 const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
+
+  // Helper to ensure data is always an array
+  const ensureArray = (input: any): string[] => {
+    if (!input) return [];
+    if (Array.isArray(input)) return input;
+    if (typeof input === 'string') {
+      return input.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    }
+    return [];
+  };
+
+  // Use optional chaining accessors for safety with normalization
+  const pomelli = data.pomelli || ({} as Partial<PomelliData>);
+  const colors = pomelli.colors || [];
+  const brandValues = pomelli.brandValues || [];
+  
+  // Normalize these fields to ensure they are always string arrays
+  const brandAesthetic = ensureArray(pomelli.brandAesthetic);
+  const toneOfVoice = ensureArray(pomelli.toneOfVoice);
 
   const handleExportDoc = () => {
     // Helper function to convert custom markdown-like syntax to Word-compatible HTML
@@ -143,20 +162,20 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
         <h2>5. Pomelli (Business DNA)</h2>
         
         <h3>Overview</h3>
-        <p><b>Tagline:</b> "${data.pomelli.tagline}"</p>
-        <p><b>Archetype:</b> ${data.pomelli.brandArchetype}</p>
-        <p>${data.pomelli.businessOverview}</p>
+        <p><b>Tagline:</b> "${pomelli.tagline}"</p>
+        <p><b>Archetype:</b> ${pomelli.brandArchetype}</p>
+        <p>${pomelli.businessOverview}</p>
         
         <h3>Visual Identity</h3>
         <p><b>Aesthetic Keywords:</b></p>
-        <p>${data.pomelli.brandAesthetic.map(k => `<span class="tag">#${k}</span>`).join('')}</p>
+        <p>${brandAesthetic.map((k: string) => `<span class="tag">#${k}</span>`).join('')}</p>
         
-        <p><b>Typography:</b> ${data.pomelli.typography}</p>
+        <p><b>Typography:</b> ${pomelli.typography}</p>
         
         <h4>Brand Colors</h4>
         <table>
           <tr><th>Color</th><th>Name / Hex</th><th>Description</th></tr>
-          ${data.pomelli.colors.map(c => `
+          ${colors.map((c: any) => `
             <tr>
               <td><span class="color-box" style="background-color:${c.hex}"></span></td>
               <td><b>${c.name}</b><br/>${c.hex}</td>
@@ -166,11 +185,11 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
         </table>
         
         <h3>Tone & Values</h3>
-        <p><b>Tone of Voice:</b> ${data.pomelli.toneOfVoice.join(', ')}</p>
+        <p><b>Tone of Voice:</b> ${toneOfVoice.join(', ')}</p>
         
         <h4>Core Values</h4>
         <ul>
-          ${data.pomelli.brandValues.map(v => `<li><b>${v.title}:</b> ${v.description}</li>`).join('')}
+          ${brandValues.map((v: any) => `<li><b>${v.title}:</b> ${v.description}</li>`).join('')}
         </ul>
 
       </body>
@@ -306,15 +325,15 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
             </div>
             <div className="text-right">
                  <span className="inline-block px-3 py-1 bg-fuchsia-100 text-fuchsia-700 rounded-full text-xs font-bold uppercase tracking-wider mb-1">Archetype</span>
-                 <p className="text-lg font-bold text-slate-800">{data.pomelli.brandArchetype || "The Creator"}</p>
+                 <p className="text-lg font-bold text-slate-800">{pomelli.brandArchetype || "The Creator"}</p>
             </div>
         </div>
         
         <div className="relative z-10">
            {/* Tagline & Overview */}
            <div className="text-center max-w-3xl mx-auto mb-12">
-              <p className="text-3xl md:text-5xl font-serif italic text-slate-800 leading-tight mb-6">"{data.pomelli.tagline}"</p>
-              <p className="text-slate-600 text-lg leading-relaxed">{data.pomelli.businessOverview}</p>
+              <p className="text-3xl md:text-5xl font-serif italic text-slate-800 leading-tight mb-6">"{pomelli.tagline}"</p>
+              <p className="text-slate-600 text-lg leading-relaxed">{pomelli.businessOverview}</p>
            </div>
 
            {/* DNA Grid */}
@@ -329,7 +348,7 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
                           <span className="w-2 h-2 rounded-full bg-slate-400"></span> Brand Colors
                       </h4>
                       <div className="space-y-3">
-                          {data.pomelli.colors.map((color, idx) => (
+                          {colors.map((color, idx) => (
                               <div key={idx} className="group flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100 hover:bg-white hover:shadow-md transition-all">
                                   <div 
                                       className="w-12 h-12 rounded-full shadow-inner border border-slate-200 flex-shrink-0 ring-2 ring-white"
@@ -352,17 +371,18 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
                      <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
                         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Brand Aesthetic</h4>
                         <div className="flex flex-wrap gap-2">
-                            {data.pomelli.brandAesthetic?.map((keyword, idx) => (
+                            {brandAesthetic.map((keyword, idx) => (
                                 <span key={idx} className="px-3 py-1.5 bg-white text-slate-700 border border-slate-200 rounded-lg text-xs font-medium shadow-sm">
                                     #{keyword}
                                 </span>
-                            )) || <span className="text-xs text-slate-400">Not specified</span>}
+                            ))}
+                            {brandAesthetic.length === 0 && <span className="text-xs text-slate-400">Not specified</span>}
                         </div>
                      </div>
 
                      <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
                         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Typography</h4>
-                        <p className="text-sm text-slate-700 font-medium">{data.pomelli.typography}</p>
+                        <p className="text-sm text-slate-700 font-medium">{pomelli.typography}</p>
                      </div>
                   </div>
               </div>
@@ -376,11 +396,12 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
                           <span className="w-2 h-2 rounded-full bg-slate-400"></span> Tone of Voice
                       </h4>
                       <div className="flex flex-wrap gap-3">
-                          {data.pomelli.toneOfVoice?.map((tone, idx) => (
+                          {toneOfVoice.map((tone, idx) => (
                               <div key={idx} className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full text-sm font-bold">
                                   {tone}
                               </div>
-                          )) || <span className="text-sm text-slate-400">Professional, Trustworthy</span>}
+                          ))}
+                          {toneOfVoice.length === 0 && <span className="text-sm text-slate-400">Professional, Trustworthy</span>}
                       </div>
                   </div>
 
@@ -390,7 +411,7 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
                           <span className="w-2 h-2 rounded-full bg-slate-400"></span> Core Values
                       </h4>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {data.pomelli.brandValues.map((val, idx) => (
+                          {brandValues.map((val, idx) => (
                               <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
                                   <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-bold mb-3">
                                     0{idx + 1}
