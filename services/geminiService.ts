@@ -1,10 +1,37 @@
+/// <reference types="vite/client" />
 
 import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from "@google/genai";
 import { BrandPersona, AnalysisRequest, CustomInputs, PersonaFieldKey, FieldGuide, FIELD_METADATA, BuilderState } from "../types";
 
 // [보안 및 안정성 최우선 설정]
 // 하이브리드 방식: Vercel 환경 변수가 있으면 사용, 없으면 하드코딩된 키(사용자 제공)를 사용
-const apiKey = process.env.REACT_APP_GEMINI_API_KEY || "AIzaSyAf8BsOSUlcr3wzJ8bGTv2Gc4qEnz8dIW0";
+// [보안 및 안정성 최우선 설정]
+// 하이브리드 방식: Vercel/Vite 환경 변수가 있으면 사용, 없으면 하드코딩된 키(사용자 제공)를 사용
+const getApiKey = () => {
+  // 1. Vite / Modern Browsers
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) {
+    return import.meta.env.VITE_GEMINI_API_KEY;
+  }
+
+  // 2. Node.js / Vite 'define' replacement
+  // process.env.GEMINI_API_KEY is replaced by string literal in Vite build if defined in config
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      if (process.env.GEMINI_API_KEY) return process.env.GEMINI_API_KEY;
+      if (process.env.REACT_APP_GEMINI_API_KEY) return process.env.REACT_APP_GEMINI_API_KEY;
+    }
+    // Safe check for replaced global
+    // @ts-ignore
+    if (typeof process === 'undefined' && typeof GEMINI_API_KEY !== 'undefined') {
+      // @ts-ignore
+      return GEMINI_API_KEY;
+    }
+  } catch (e) { }
+
+  return "AIzaSyAf8BsOSUlcr3wzJ8bGTv2Gc4qEnz8dIW0";
+};
+
+const apiKey = getApiKey();
 
 const ai = new GoogleGenAI({ apiKey: apiKey });
 
@@ -68,7 +95,7 @@ const cleanAndParseJson = (text: string): any => {
     // 2. Find the absolute first '{' and last '}'
     const firstOpen = cleanText.indexOf('{');
     const lastClose = cleanText.lastIndexOf('}');
-    
+
     if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
       cleanText = cleanText.substring(firstOpen, lastClose + 1);
     } else {
@@ -80,7 +107,7 @@ const cleanAndParseJson = (text: string): any => {
   } catch (e) {
     console.error("JSON Extraction Failed. Raw text:", text);
     // Return null so the caller can handle default fallback
-    return null; 
+    return null;
   }
 };
 
@@ -106,16 +133,16 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
   const { idea, url, brandName, customInputs } = request;
 
   const hasBrandName = brandName && brandName.trim().length > 0;
-  const brandNameInstruction = hasBrandName 
+  const brandNameInstruction = hasBrandName
     ? `[확정된 브랜드명]: "${brandName}"`
     : `[확정된 브랜드명]: 없음 (공란). \n[중요]: 당신이 이 사업 아이디어에 가장 잘 어울리는 **브랜드 네이밍을 직접 창작**하여 'brandName' 필드에 입력하세요. 절대로 '미정'이라고 적지 마세요.`;
 
   let customInstructions = "";
   if (customInputs) {
     Object.entries(customInputs).forEach(([key, value]) => {
-        if (value && value.trim().length > 0) {
-            customInstructions += `- ${key}: ${value}\n`;
-        }
+      if (value && value.trim().length > 0) {
+        customInstructions += `- ${key}: ${value}\n`;
+      }
     });
   }
 
@@ -164,7 +191,7 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
-      config: { 
+      config: {
         responseMimeType: "application/json",
         safetySettings: SAFETY_SETTINGS
       }
@@ -172,13 +199,13 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
 
     const text = response.text || "";
     let result = cleanAndParseJson(text);
-    
+
     // Fallback for parsing failure or missing pomelli
     if (!result) {
-        throw new Error("데이터 파싱에 실패했습니다.");
+      throw new Error("데이터 파싱에 실패했습니다.");
     }
     if (!result.pomelli) {
-        result.pomelli = DEFAULT_POMELLI;
+      result.pomelli = DEFAULT_POMELLI;
     }
 
     return result as BrandPersona;
@@ -192,7 +219,7 @@ export const generateBrandPersonaData = async (request: AnalysisRequest): Promis
 
 export const generatePlanningGuides = async (idea: string, brandName?: string): Promise<Record<string, string[]>> => {
   const fieldsList = FIELD_METADATA.map(f => f.key).join(", ");
-  
+
   const prompt = `
     당신은 신병철 박사의 '논백경쟁전략' 전문가입니다.
     사용자 아이디어: "${idea}"
@@ -214,7 +241,7 @@ export const generatePlanningGuides = async (idea: string, brandName?: string): 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
-      config: { 
+      config: {
         responseMimeType: "application/json",
         safetySettings: SAFETY_SETTINGS
       }
@@ -230,10 +257,10 @@ export const generatePlanningGuides = async (idea: string, brandName?: string): 
 
 // 2. Generate Draft for a SINGLE field (Pro Mode)
 export const generateFieldDraft = async (
-  fieldKey: string, 
-  idea: string, 
+  fieldKey: string,
+  idea: string,
   userInputs: string[], // Array input
-  guides: string[],     
+  guides: string[],
   context: string,
   brandName?: string
 ): Promise<string> => {
@@ -241,7 +268,7 @@ export const generateFieldDraft = async (
   const finalBrandName = brandName || "미정";
 
   // Construct Q&A format
-  const qnaContext = guides.map((q, i) => `질문 ${i+1}: ${q}\n사용자 답변 ${i+1}: ${userInputs[i] || "답변 없음"}`).join("\n\n");
+  const qnaContext = guides.map((q, i) => `질문 ${i + 1}: ${q}\n사용자 답변 ${i + 1}: ${userInputs[i] || "답변 없음"}`).join("\n\n");
 
   const prompt = `
     ${SYSTEM_INSTRUCTION}
@@ -288,18 +315,18 @@ export const generateFieldDraft = async (
 
 // 3. Finalize and Assemble
 export const finalizePersona = async (idea: string, builderState: BuilderState): Promise<BrandPersona> => {
-  
+
   // Assemble drafts directly (No re-generation to avoid errors)
   const basePersona: any = {};
   FIELD_METADATA.forEach(field => {
-      basePersona[field.key] = builderState[field.key]?.draft || "내용 없음";
+    basePersona[field.key] = builderState[field.key]?.draft || "내용 없음";
   });
   basePersona.brandNameSuggestions = [];
 
   // Generate only Pomelli DNA
   const summary = Object.entries(basePersona)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join("\n");
+    .map(([k, v]) => `${k}: ${v}`)
+    .join("\n");
 
   const prompt = `
     ${SYSTEM_INSTRUCTION}
@@ -330,18 +357,18 @@ export const finalizePersona = async (idea: string, builderState: BuilderState):
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
-      config: { 
+      config: {
         responseMimeType: "application/json",
         safetySettings: SAFETY_SETTINGS
       }
     });
-    
+
     const text = response.text || "";
     const pomelliData = cleanAndParseJson(text) || DEFAULT_POMELLI;
 
     const finalPersona: BrandPersona = {
-        ...basePersona,
-        pomelli: pomelliData
+      ...basePersona,
+      pomelli: pomelliData
     };
 
     return finalPersona;
@@ -349,8 +376,8 @@ export const finalizePersona = async (idea: string, builderState: BuilderState):
     console.error("Error finalizing persona:", error);
     // Return partial data with default Pomelli to prevent crash
     return {
-        ...basePersona,
-        pomelli: DEFAULT_POMELLI
+      ...basePersona,
+      pomelli: DEFAULT_POMELLI
     };
   }
 };
