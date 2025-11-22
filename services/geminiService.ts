@@ -4,7 +4,7 @@ import { BrandPersona, AnalysisRequest, CustomInputs, PersonaFieldKey, FieldGuid
 
 // [보안 및 안정성 최우선 설정]
 // 하이브리드 방식: Vercel 환경 변수가 있으면 사용, 없으면 하드코딩된 키(사용자 제공)를 사용
-const apiKey = process.env.REACT_APP_GEMINI_API_KEY || "AIzaSyAA1mo8-okhJFyAb7muzyeIZsel0x7vSs0";
+const apiKey = process.env.REACT_APP_GEMINI_API_KEY || "AIzaSyAf8BsOSUlcr3wzJ8bGTv2Gc4qEnz8dIW0";
 
 const ai = new GoogleGenAI({ apiKey: apiKey });
 
