@@ -213,14 +213,26 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
                 {isOpen && (
                   <div className="px-6 pb-6 animate-fade-in">
                     {/* Description Section */}
-                    <div className="mb-6 bg-slate-50 p-5 rounded-xl border border-slate-200">
-                      <h4 className="text-sm font-bold text-slate-800 mb-2 flex items-center gap-2">
+                    <div className="mb-6 bg-slate-50 p-5 rounded-xl border border-slate-200 max-h-96 overflow-y-auto">
+                      <h4 className="text-sm font-bold text-slate-800 mb-3 flex items-center gap-2 sticky top-0 bg-slate-50 pb-2">
                         <Icons.Info className="w-4 h-4 text-indigo-500" />
                         {field.label}, 왜 필요한가요?
                       </h4>
-                      <p className="text-sm text-slate-600 leading-relaxed keep-all">
-                        {field.description}
-                      </p>
+                      <div className="text-sm text-slate-700 leading-relaxed keep-all space-y-3">
+                        {field.description.split('\n\n').map((paragraph, i) => {
+                          // Check if paragraph starts with **something**: to make it a section header
+                          const boldMatch = paragraph.match(/^\*\*(.+?)\*\*:\s*(.+)$/);
+                          if (boldMatch) {
+                            return (
+                              <div key={i}>
+                                <div className="font-bold text-indigo-700 mb-1">{boldMatch[1]}</div>
+                                <div className="text-slate-600">{boldMatch[2]}</div>
+                              </div>
+                            );
+                          }
+                          return <p key={i} className="text-slate-600">{paragraph}</p>;
+                        })}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
