@@ -26,7 +26,8 @@ import {
   X,
   Eye,
   EyeOff,
-  Info
+  Info,
+  AlertCircle
 } from 'lucide-react';
 
 export const Icons = {
@@ -56,5 +57,6 @@ export const Icons = {
   X,
   Eye,
   EyeOff,
-  Info
+  Info,
+  AlertCircle
 };

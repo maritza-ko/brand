@@ -283,6 +283,14 @@ export const generatePlanningGuides = async (idea: string, brandName?: string, a
   const fieldsList = FIELD_METADATA.map(f => f.key).join(", ");
   const ai = getAI(apiKey);
 
+  // 서버 측 입력 검증 (이중 안전장치)
+  // 클라이언트 검증을 우회한 경우를 대비
+  const validation = await import('../utils/validation').then(m => m.validateBrandIdea(idea));
+  if (!validation.isValid) {
+    console.warn('[Input Validation Failed]', validation.errorMessage);
+    throw new Error(validation.errorMessage || "유효하지 않은 브랜드 아이디어입니다. 최소 10자 이상의 구체적인 내용을 작성해주세요.");
+  }
+
   const prompt = `
     ${SYSTEM_INSTRUCTION}
     
