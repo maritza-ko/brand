@@ -25,7 +25,7 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
   const pomelli = data.pomelli || ({} as Partial<PomelliData>);
   const colors = pomelli.colors || [];
   const brandValues = pomelli.brandValues || [];
-  
+
   // Normalize these fields to ensure they are always string arrays
   const brandAesthetic = ensureArray(pomelli.brandAesthetic);
   const toneOfVoice = ensureArray(pomelli.toneOfVoice);
@@ -46,35 +46,35 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
       lines.forEach(line => {
         const trimmed = line.trim();
         if (!trimmed) {
-             if (inList) { html += '</ul>'; inList = false; }
-             html += '<br/>'; 
-             return; 
+          if (inList) { html += '</ul>'; inList = false; }
+          html += '<br/>';
+          return;
         }
 
         // Headers
         if (trimmed.startsWith('###')) {
-           if (inList) { html += '</ul>'; inList = false; }
-           html += `<h3>${trimmed.replace(/^###\s*/, '')}</h3>`;
+          if (inList) { html += '</ul>'; inList = false; }
+          html += `<h3>${trimmed.replace(/^###\s*/, '')}</h3>`;
         }
         // List Items
         else if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('• ')) {
-           if (!inList) { html += '<ul>'; inList = true; }
-           html += `<li>${parseBold(trimmed.replace(/^[-*•]\s*/, ''))}</li>`;
+          if (!inList) { html += '<ul>'; inList = true; }
+          html += `<li>${parseBold(trimmed.replace(/^[-*•]\s*/, ''))}</li>`;
         }
         // Numbered Items (treated as bold paragraphs for simplicity in Word or ordered list)
         else if (/^\d+\.\s/.test(trimmed)) {
-            if (inList) { html += '</ul>'; inList = false; }
-            const parts = trimmed.split(/(\d+\.\s)/);
-            if(parts.length >= 2) {
-               html += `<p><b>${parts[1]}</b>${parseBold(parts.slice(2).join(''))}</p>`;
-            } else {
-               html += `<p>${parseBold(trimmed)}</p>`;
-            }
+          if (inList) { html += '</ul>'; inList = false; }
+          const parts = trimmed.split(/(\d+\.\s)/);
+          if (parts.length >= 2) {
+            html += `<p><b>${parts[1]}</b>${parseBold(parts.slice(2).join(''))}</p>`;
+          } else {
+            html += `<p>${parseBold(trimmed)}</p>`;
+          }
         }
         // Paragraphs
         else {
-           if (inList) { html += '</ul>'; inList = false; }
-           html += `<p>${parseBold(trimmed)}</p>`;
+          if (inList) { html += '</ul>'; inList = false; }
+          html += `<p>${parseBold(trimmed)}</p>`;
         }
       });
 
@@ -90,7 +90,7 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
         <title>${data.brandName} Brand Persona</title>
         <style>
           body { font-family: 'Malgun Gothic', sans-serif; line-height: 1.5; color: #333; }
-          h1 { font-size: 28pt; color: #1e293b; border-bottom: 3px solid #4f46e5; padding-bottom: 15px; margin-bottom: 30px; }
+          h1 { font-size: 13pt; color: #1e293b; border-bottom: 2px solid #4f46e5; padding-bottom: 10px; margin-bottom: 20px; }
           h2 { font-size: 20pt; color: #fff; background-color: #4f46e5; padding: 10px 15px; margin-top: 40px; margin-bottom: 20px; border-radius: 4px; }
           h3 { font-size: 14pt; color: #4338ca; margin-top: 25px; margin-bottom: 10px; border-left: 4px solid #4338ca; padding-left: 10px; }
           p { margin-bottom: 12px; font-size: 11pt; text-align: justify; }
@@ -200,7 +200,7 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${data.brandName.replace(/\s+/g, '_')}_Brand_Persona.doc`;
+    link.download = `${data.brandName.replace(/\s+/g, '_')}_브랜드_페르소나.doc`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -208,13 +208,13 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
   };
 
   // Convert array to formatted string for better display in PersonaCard (avoiding badge style)
-  const formattedBrandSuggestions = data.brandNameSuggestions 
-    ? data.brandNameSuggestions.map(s => `- ${s}`).join('\n') 
+  const formattedBrandSuggestions = data.brandNameSuggestions
+    ? data.brandNameSuggestions.map(s => `- ${s}`).join('\n')
     : "";
 
   return (
     <div className="w-full max-w-7xl mx-auto pb-20">
-      
+
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
@@ -225,62 +225,62 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
           <p className="text-slate-500">{data.slogan}</p>
         </div>
         <div className="flex items-center gap-2">
-            <button 
+          <button
             onClick={handleExportDoc}
             className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all font-bold shadow-md hover:shadow-lg active:scale-95"
-            >
+          >
             <Icons.Download className="w-4 h-4" />
             리포트 다운로드
-            </button>
-            <button 
+          </button>
+          <button
             onClick={onReset}
             className="flex items-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 hover:text-indigo-600 transition-colors font-medium shadow-sm"
-            >
+          >
             <Icons.Repeat className="w-4 h-4" />
             새로 만들기
-            </button>
+          </button>
         </div>
       </div>
 
       {/* Top Section: Brand Name Suggestions */}
       {data.brandNameSuggestions && data.brandNameSuggestions.length > 0 && (
-         <div className="mb-8">
-             <PersonaCard 
-               title="추천 네이밍 후보" 
-               content={formattedBrandSuggestions} 
-               icon={Icons.Tag} 
-               colorClass="bg-indigo-500"
-               fullWidth={true}
-             />
-         </div>
+        <div className="mb-8">
+          <PersonaCard
+            title="추천 네이밍 후보"
+            content={formattedBrandSuggestions}
+            icon={Icons.Tag}
+            colorClass="bg-indigo-500"
+            fullWidth={true}
+          />
+        </div>
       )}
 
       {/* Key Philosophy & Strategy Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-           <PersonaCard 
-             title="브랜드 철학" 
-             content={data.philosophy} 
-             icon={Icons.Lightbulb} 
-             colorClass="bg-amber-500"
-             fullWidth={true}
-           />
-           <PersonaCard 
-             title="핵심 전략" 
-             content={data.coreStrategy} 
-             icon={Icons.Target} 
-             colorClass="bg-red-500"
-           />
-           <PersonaCard 
-             title="핵심 기술/역량" 
-             content={data.coreTechnology} 
-             icon={Icons.Cpu} 
-             colorClass="bg-blue-500"
-           />
+        <PersonaCard
+          title="브랜드 철학"
+          content={data.philosophy}
+          icon={Icons.Lightbulb}
+          colorClass="bg-amber-500"
+          fullWidth={true}
+        />
+        <PersonaCard
+          title="핵심 전략"
+          content={data.coreStrategy}
+          icon={Icons.Target}
+          colorClass="bg-red-500"
+        />
+        <PersonaCard
+          title="핵심 기술/역량"
+          content={data.coreTechnology}
+          icon={Icons.Cpu}
+          colorClass="bg-blue-500"
+        />
       </div>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        
+
         {/* Column 1: Target & Culture */}
         <div className="space-y-6">
           <PersonaCard title="고객 정의 (Target)" content={data.targetAudience} icon={Icons.Users} colorClass="bg-emerald-500" />
@@ -314,117 +314,117 @@ const ResultDashboard: React.FC<ResultDashboardProps> = ({ data, onReset }) => {
 
         {/* Header */}
         <div className="relative z-10 mb-10 border-b border-slate-100 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-                <div className="p-3 rounded-2xl bg-slate-900 text-white shadow-lg">
-                    <Icons.Palette className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">pomelli <span className="font-sans font-normal text-base text-slate-400">(Your Business DNA)</span></h3>
-                  <p className="text-sm text-slate-500">Visual Identity & Core Strategy Overview</p>
-                </div>
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-2xl bg-slate-900 text-white shadow-lg">
+              <Icons.Palette className="w-6 h-6" />
             </div>
-            <div className="text-right">
-                 <span className="inline-block px-3 py-1 bg-fuchsia-100 text-fuchsia-700 rounded-full text-xs font-bold uppercase tracking-wider mb-1">Archetype</span>
-                 <p className="text-lg font-bold text-slate-800">{pomelli.brandArchetype || "The Creator"}</p>
+            <div>
+              <h3 className="text-2xl font-serif font-bold text-slate-900 tracking-tight">pomelli <span className="font-sans font-normal text-base text-slate-400">(Your Business DNA)</span></h3>
+              <p className="text-sm text-slate-500">Visual Identity & Core Strategy Overview</p>
             </div>
+          </div>
+          <div className="text-right">
+            <span className="inline-block px-3 py-1 bg-fuchsia-100 text-fuchsia-700 rounded-full text-xs font-bold uppercase tracking-wider mb-1">Archetype</span>
+            <p className="text-lg font-bold text-slate-800">{pomelli.brandArchetype || "The Creator"}</p>
+          </div>
         </div>
-        
+
         <div className="relative z-10">
-           {/* Tagline & Overview */}
-           <div className="text-center max-w-3xl mx-auto mb-12">
-              <p className="text-3xl md:text-5xl font-serif italic text-slate-800 leading-tight mb-6">"{pomelli.tagline}"</p>
-              <p className="text-slate-600 text-lg leading-relaxed">{pomelli.businessOverview}</p>
-           </div>
+          {/* Tagline & Overview */}
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <p className="text-3xl md:text-5xl font-serif italic text-slate-800 leading-tight mb-6">"{pomelli.tagline}"</p>
+            <p className="text-slate-600 text-lg leading-relaxed">{pomelli.businessOverview}</p>
+          </div>
 
-           {/* DNA Grid */}
-           <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-              
-              {/* Left: Visual Identity (Colors, Aesthetic, Typography) */}
-              <div className="md:col-span-5 space-y-8">
-                  
-                  {/* Colors */}
-                  <div>
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-slate-400"></span> Brand Colors
-                      </h4>
-                      <div className="space-y-3">
-                          {colors.map((color, idx) => (
-                              <div key={idx} className="group flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100 hover:bg-white hover:shadow-md transition-all">
-                                  <div 
-                                      className="w-12 h-12 rounded-full shadow-inner border border-slate-200 flex-shrink-0 ring-2 ring-white"
-                                      style={{ backgroundColor: color.hex }}
-                                  ></div>
-                                  <div className="min-w-0">
-                                      <div className="flex items-center gap-2 mb-0.5">
-                                        <p className="font-bold text-slate-800 text-sm">{color.name}</p>
-                                        <span className="text-[10px] font-mono text-slate-400 bg-white px-1.5 rounded border border-slate-200">{color.hex}</span>
-                                      </div>
-                                      <p className="text-xs text-slate-500 truncate">{color.description}</p>
-                                  </div>
-                              </div>
-                          ))}
-                      </div>
-                  </div>
+          {/* DNA Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
 
-                  {/* Aesthetic & Typography */}
-                  <div className="grid grid-cols-1 gap-6">
-                     <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Brand Aesthetic</h4>
-                        <div className="flex flex-wrap gap-2">
-                            {brandAesthetic.map((keyword, idx) => (
-                                <span key={idx} className="px-3 py-1.5 bg-white text-slate-700 border border-slate-200 rounded-lg text-xs font-medium shadow-sm">
-                                    #{keyword}
-                                </span>
-                            ))}
-                            {brandAesthetic.length === 0 && <span className="text-xs text-slate-400">Not specified</span>}
+            {/* Left: Visual Identity (Colors, Aesthetic, Typography) */}
+            <div className="md:col-span-5 space-y-8">
+
+              {/* Colors */}
+              <div>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-slate-400"></span> Brand Colors
+                </h4>
+                <div className="space-y-3">
+                  {colors.map((color, idx) => (
+                    <div key={idx} className="group flex items-center gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100 hover:bg-white hover:shadow-md transition-all">
+                      <div
+                        className="w-12 h-12 rounded-full shadow-inner border border-slate-200 flex-shrink-0 ring-2 ring-white"
+                        style={{ backgroundColor: color.hex }}
+                      ></div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className="font-bold text-slate-800 text-sm">{color.name}</p>
+                          <span className="text-[10px] font-mono text-slate-400 bg-white px-1.5 rounded border border-slate-200">{color.hex}</span>
                         </div>
-                     </div>
-
-                     <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
-                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Typography</h4>
-                        <p className="text-sm text-slate-700 font-medium">{pomelli.typography}</p>
-                     </div>
-                  </div>
+                        <p className="text-xs text-slate-500 truncate">{color.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* Right: Values & Tone */}
-              <div className="md:col-span-7 space-y-8">
-                  
-                  {/* Tone of Voice */}
-                  <div>
-                     <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-slate-400"></span> Tone of Voice
-                      </h4>
-                      <div className="flex flex-wrap gap-3">
-                          {toneOfVoice.map((tone, idx) => (
-                              <div key={idx} className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full text-sm font-bold">
-                                  {tone}
-                              </div>
-                          ))}
-                          {toneOfVoice.length === 0 && <span className="text-sm text-slate-400">Professional, Trustworthy</span>}
-                      </div>
+              {/* Aesthetic & Typography */}
+              <div className="grid grid-cols-1 gap-6">
+                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Brand Aesthetic</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {brandAesthetic.map((keyword, idx) => (
+                      <span key={idx} className="px-3 py-1.5 bg-white text-slate-700 border border-slate-200 rounded-lg text-xs font-medium shadow-sm">
+                        #{keyword}
+                      </span>
+                    ))}
+                    {brandAesthetic.length === 0 && <span className="text-xs text-slate-400">Not specified</span>}
                   </div>
+                </div>
 
-                  {/* Core Values */}
-                  <div>
-                      <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-slate-400"></span> Core Values
-                      </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {brandValues.map((val, idx) => (
-                              <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
-                                  <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-bold mb-3">
-                                    0{idx + 1}
-                                  </div>
-                                  <p className="font-bold text-slate-800 mb-2">{val.title}</p>
-                                  <p className="text-xs text-slate-500 leading-relaxed">{val.description}</p>
-                              </div>
-                          ))}
-                      </div>
-                  </div>
-
+                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Typography</h4>
+                  <p className="text-sm text-slate-700 font-medium">{pomelli.typography}</p>
+                </div>
               </div>
-           </div>
+            </div>
+
+            {/* Right: Values & Tone */}
+            <div className="md:col-span-7 space-y-8">
+
+              {/* Tone of Voice */}
+              <div>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-slate-400"></span> Tone of Voice
+                </h4>
+                <div className="flex flex-wrap gap-3">
+                  {toneOfVoice.map((tone, idx) => (
+                    <div key={idx} className="px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full text-sm font-bold">
+                      {tone}
+                    </div>
+                  ))}
+                  {toneOfVoice.length === 0 && <span className="text-sm text-slate-400">Professional, Trustworthy</span>}
+                </div>
+              </div>
+
+              {/* Core Values */}
+              <div>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-slate-400"></span> Core Values
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {brandValues.map((val, idx) => (
+                    <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:border-indigo-100 transition-colors">
+                      <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center text-xs font-bold mb-3">
+                        0{idx + 1}
+                      </div>
+                      <p className="font-bold text-slate-800 mb-2">{val.title}</p>
+                      <p className="text-xs text-slate-500 leading-relaxed">{val.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+          </div>
         </div>
       </div>
 
