@@ -1,0 +1,41 @@
+﻿/* filepath: C:\persona\brand\src\styles\report.css */
+/* ...existing code... */
+/* 由ы룷???붿빟(泥섏쓬 ?쒖텧?섎뒗 ?붿빟) ?고듃/?ㅽ????뺤젣 */
+.report-summary {
+  font-family: Inter, "Segoe UI", Roboto, system-ui, -apple-system, "Helvetica Neue", Arial;
+  font-size: 14px; /* 湲곗〈 ?鍮??묎쾶 議곗젙 */
+  line-height: 1.45;
+  font-weight: 500;
+  color: #222;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.01em;
+  max-width: 900px;
+}
+.report-summary .title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #111;
+}
+.report-summary p {
+  margin: 4px 0;
+  color: #333;
+}
+
+/* ??遺덉씪移?諛곕꼫 */
+.tone-mismatch-banner {
+  border-left: 4px solid #ef4444;
+  background: #fff5f5;
+  padding: 8px 12px;
+  margin: 12px 0;
+  border-radius: 6px;
+  color: #7f1d1d;
+  font-size: 13px;
+}
+
+/* 諛섏쓳??議곗젙 */
+@media (max-width:720px) {
+  .report-summary { font-size: 13px; }
+  .report-summary .title { font-size: 15px; }
+}
+/* ...existing code... */

@@ -1,0 +1,36 @@
+﻿/* filepath: C:\persona\brand\src\data\brandPlan.schema.json */
+/* ...existing code... */
+{
+  "BrandPlan": {
+    "type": "object",
+    "properties": {
+      "name_initial": { "type": "string" },
+      "philosophy": { "type": "string" },
+      "slogan": { "type": "string" },
+      "brand_memo": { "type": "string" },
+      "core_tech": { "type": "string" },
+      "core_strategy": { "type": "string" },
+      "competitive_attributes": { "type": "array", "items": { "type": "string" } },
+      "customer_definition": { "type": "string" },
+      "genz_value": { "type": "string" },
+      "culture_creation": { "type": "string" },
+      "quality_level": { "type": "string" },
+      "price_level": { "type": "string" },
+      "functional_benefits": { "type": "string" },
+      "experiential_benefits": { "type": "string" },
+      "symbolic_benefits": { "type": "string" },
+      "brand_keywords": { "type": "array", "items": { "type": "string" } },
+      "membership_philosophy": { "type": "string" },
+      "name_revalidated": {
+        "type": "array",
+        "items": { "type": "object", "properties": { "name": { "type": "string" }, "score": { "type": "number" } } }
+      },
+      "tone_mismatch_report": {
+        "type": "array",
+        "items": { "type": "object", "properties": { "field": { "type": "string" }, "issue": { "type": "string" }, "severity": { "type": "string" } } }
+      }
+    },
+    "required": ["name_initial","philosophy","slogan"]
+  }
+}
+/* ...existing code... */
