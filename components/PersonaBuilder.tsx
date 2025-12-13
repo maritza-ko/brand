@@ -337,21 +337,71 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 p-4 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-        <div className="max-w-5xl mx-auto flex justify-between items-center">
-          <div className="text-sm text-slate-500">
-            <span className="font-bold text-indigo-600">{completedCount}</span> / {totalCount} 항목 작성 완료
+      {/* Review & Finalization Section - Appears when all fields are completed */}
+      {completedCount === totalCount && (
+        <div className="fixed bottom-0 left-0 w-full bg-gradient-to-r from-indigo-50 to-purple-50 border-t border-indigo-200 p-4 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+          <div className="max-w-5xl mx-auto">
+            <div className="bg-white rounded-xl p-5 mb-4 border border-indigo-100 shadow-sm">
+              <h3 className="font-bold text-indigo-700 mb-2 flex items-center gap-2">
+                <Icons.Refresh className="w-5 h-5" />
+                브랜드 전략 재검토
+              </h3>
+              <p className="text-sm text-slate-600">
+                모든 항목이 완성되었습니다! 지금까지의 전략을 한 번 더 검토하고, 필요하다면 수정할 수 있습니다.
+              </p>
+            </div>
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-slate-500">
+                <span className="font-bold text-indigo-600">{completedCount}</span> / {totalCount} 항목 작성 완료
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    // Expand the first field for review
+                    setExpandedField('brandName');
+                  }}
+                  className="px-6 py-3 bg-indigo-100 text-indigo-700 rounded-xl font-bold hover:bg-indigo-200 transition-colors"
+                >
+                  검토 및 수정
+                </button>
+                <button
+                  onClick={() => onComplete(builderState)}
+                  className="px-8 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold hover:from-indigo-700 hover:to-purple-700 transition-colors shadow-lg flex items-center gap-2"
+                >
+                  <span>최종 페르소나 완성하기</span>
+                  <Icons.ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={() => onComplete(builderState)}
-            disabled={completedCount < 3}
-            className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 transition-colors shadow-lg flex items-center gap-2"
-          >
-            <span>최종 페르소나 완성하기</span>
-            <Icons.ArrowRight className="w-4 h-4" />
-          </button>
         </div>
-      </div>
+      )}
+
+      {/* Regular completion button when not all fields are done */}
+      {completedCount !== totalCount && (
+        <div className="fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 p-4 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
+          <div className="max-w-5xl mx-auto flex justify-between items-center">
+            <div className="text-sm text-slate-500">
+              <span className="font-bold text-indigo-600">{completedCount}</span> / {totalCount} 항목 작성 완료
+            </div>
+            <button
+              onClick={() => {
+                // If all are done, show the review section
+                if (completedCount === totalCount) {
+                  setExpandedField('brandName');
+                } else {
+                  onComplete(builderState);
+                }
+              }}
+              disabled={completedCount < 3}
+              className="px-8 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 transition-colors shadow-lg flex items-center gap-2"
+            >
+              <span>최종 페르소나 완성하기</span>
+              <Icons.ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes fadeIn {

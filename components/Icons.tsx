@@ -27,7 +27,8 @@ import {
   Eye,
   EyeOff,
   Info,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 
 export const Icons = {
@@ -58,5 +59,6 @@ export const Icons = {
   Eye,
   EyeOff,
   Info,
-  AlertCircle
+  AlertCircle,
+  Refresh: RefreshCw
 };
