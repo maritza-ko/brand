@@ -165,6 +165,9 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
   const totalCount = FIELD_METADATA.length;
   const progress = Math.round((completedCount / totalCount) * 100);
 
+  // Check if all 17 fields are completed for brand name reconsideration
+  const isAllFieldsCompleted = completedCount === totalCount;
+
   return (
     <div className="w-full max-w-5xl mx-auto pb-20">
       {/* Progress Header */}
@@ -339,31 +342,31 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
       </div>
 
       {/* Review & Finalization Section - Appears when all fields are completed */}
-      {completedCount === totalCount && (
+      {isAllFieldsCompleted && (
         <div className="fixed bottom-0 left-0 w-full bg-gradient-to-r from-indigo-50 to-purple-50 border-t border-indigo-200 p-4 z-30 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
           <div className="max-w-5xl mx-auto">
             <div className="bg-white rounded-xl p-5 mb-4 border border-indigo-100 shadow-sm">
               <h3 className="font-bold text-indigo-700 mb-2 flex items-center gap-2">
                 <Icons.Refresh className="w-5 h-5" />
-                브랜드 전략 재검토
+                최종 검토: 브랜드명 재고민
               </h3>
               <p className="text-sm text-slate-600">
-                모든 항목이 완성되었습니다! 지금까지의 전략을 한 번 더 검토하고, 필요하다면 수정할 수 있습니다.
+                17가지 항목이 완료되었습니다! 지금까지의 전략을 바탕으로 브랜드명을 다시 고민해보세요.
               </p>
             </div>
             <div className="flex justify-between items-center">
               <div className="text-sm text-slate-500">
-                <span className="font-bold text-indigo-600">{completedCount}</span> / {totalCount} 항목 작성 완료
+                <span className="font-bold text-indigo-600">{completedCount}</span> / {totalCount} 항목 작성 완료 + 브랜드명 재고민
               </div>
               <div className="flex gap-3">
                 <button
                   onClick={() => {
-                    // Expand the first field for review
+                    // Expand brand name field for reconsideration
                     setExpandedField('brandName');
                   }}
                   className="px-6 py-3 bg-indigo-100 text-indigo-700 rounded-xl font-bold hover:bg-indigo-200 transition-colors"
                 >
-                  검토 및 수정
+                  브랜드명 재검토
                 </button>
                 <button
                   onClick={() => onComplete(builderState)}
