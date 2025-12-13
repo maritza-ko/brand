@@ -182,6 +182,37 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
         <div className="w-full bg-slate-100 rounded-full h-2.5">
           <div className="bg-indigo-600 h-2.5 rounded-full transition-all duration-500" style={{ width: `${progress}%` }}></div>
         </div>
+
+        {/* Workshop Description */}
+        <div className="mt-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
+          <h3 className="font-bold text-indigo-800 mb-2 flex items-center gap-2">
+            <Icons.Info className="w-4 h-4" />
+            AI와 함께하는 심층 브랜드 설계
+          </h3>
+          <p className="text-sm text-slate-700 leading-relaxed">
+            단순한 자동 생성이 아닙니다. 17가지 핵심 항목에 대해 AI가 던지는 날카로운 질문(Guide)에 답하며, 당신만의 독보적인 브랜드를 직접 완성해보세요.
+            마지막 단계에서 브랜드의 시각적 유전자, Pomelli (Business DNA)까지 도출됩니다.
+          </p>
+
+          <div className="mt-3 grid grid-cols-1 md:grid-cols-4 gap-3 text-xs">
+            <div className="bg-white p-3 rounded-lg border border-indigo-100">
+              <div className="font-bold text-indigo-700 mb-1">1단계</div>
+              <div className="text-slate-600">17가지 핵심 항목에 대한 심층 질문에 답변</div>
+            </div>
+            <div className="bg-white p-3 rounded-lg border border-indigo-100">
+              <div className="font-bold text-indigo-700 mb-1">2단계</div>
+              <div className="text-slate-600">AI가 맞춤형 전략 질문 제공</div>
+            </div>
+            <div className="bg-white p-3 rounded-lg border border-indigo-100">
+              <div className="font-bold text-indigo-700 mb-1">3단계</div>
+              <div className="text-slate-600">입력을 바탕으로 브랜드 전략 초안 생성</div>
+            </div>
+            <div className="bg-white p-3 rounded-lg border border-indigo-100">
+              <div className="font-bold text-indigo-700 mb-1">4단계</div>
+              <div className="text-slate-600">브랜드명 재고민 및 시각적 DNA 도출</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
