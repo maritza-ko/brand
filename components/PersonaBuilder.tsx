@@ -113,6 +113,7 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
         currentBrandName = builderState['brandName'].draft;
       }
 
+      // Create context from ALL finalized fields (not just previous ones)
       const context = Object.entries(builderState)
         .map(([k, v]) => [k, v] as [string, FieldState])
         .filter(([k, v]) => v.isFinalized && v.draft)
@@ -137,14 +138,14 @@ const PersonaBuilder: React.FC<PersonaBuilderProps> = ({ idea, guides, initialBr
         }
       }));
 
-      // Auto-Advance Logic - Disabled to prevent continuous movement after answering
-      // const currentIndex = FIELD_METADATA.findIndex(f => f.key === key);
-      // if (currentIndex !== -1 && currentIndex < FIELD_METADATA.length - 1) {
-      //   const nextField = FIELD_METADATA[currentIndex + 1];
-      //   setTimeout(() => {
-      //     setExpandedField(nextField.key);
-      //   }, 800);
-      // }
+      // Auto-Advance to next field (after current field is finalized)
+      const currentIndex = FIELD_METADATA.findIndex(f => f.key === key);
+      if (currentIndex !== -1 && currentIndex < FIELD_METADATA.length - 1) {
+        const nextField = FIELD_METADATA[currentIndex + 1];
+        setTimeout(() => {
+          setExpandedField(nextField.key);
+        }, 800);
+      }
 
     } catch (e) {
       console.error(e);
